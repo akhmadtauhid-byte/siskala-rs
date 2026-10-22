@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SISKALA-RS - Struktur & Skala Upah</title>
+<style>
+:root{--pri:#1f4e5f;--pri2:#2d6a80;--bg:#f3f6f8;--card:#fff;--line:#d9e2e7;--txt:#1d2b32;--mut:#5f7480;--ok:#2e7d4f;--warn:#b26a00;--err:#b3261e;--okbg:#e8f3ec;--warnbg:#fff4e0;--errbg:#fdecea}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:var(--txt);background:var(--bg)}
+h1,h2,h3{margin:0 0 10px;color:var(--pri)}
+h2{font-size:20px}h3{font-size:16px}
+small,.mut{color:var(--mut)}
+button,input,select,textarea{font:inherit}
+.btn{background:var(--pri);color:#fff;border:0;border-radius:6px;padding:8px 14px;cursor:pointer}
+.btn:hover{background:var(--pri2)}
+.btn.ghost{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+.btn.warn{background:var(--warn)}.btn.err{background:var(--err)}.btn.sm{padding:4px 9px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:#fff;width:100%}
+input[type=checkbox]{width:auto}
+label.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+label.fld span{font-weight:bold;font-size:12px;color:var(--mut)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.cards .card{margin:0}
+.stat{font-size:22px;font-weight:bold;color:var(--pri)}
+.statl{font-size:12px;color:var(--mut)}
+table{border-collapse:collapse;width:100%;background:#fff}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{background:var(--pri);color:#fff;font-size:12px;white-space:nowrap}
+td.r,th.r{text-align:right}td.c,th.c{text-align:center}
+tr.tot td{font-weight:bold;background:#eef3f5}
+.wrap{overflow-x:auto;margin-bottom:14px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold}
+.b-Draft{background:#e6eaed;color:#42535c}.b-Diajukan{background:var(--warnbg);color:var(--warn)}
+.b-Disetujui{background:var(--okbg);color:var(--ok)}.b-Ditolak{background:var(--errbg);color:var(--err)}
+.pos-bawah{color:var(--err);font-weight:bold}.pos-dalam{color:var(--ok)}.pos-atas{color:var(--warn);font-weight:bold}
+/* shell */
+#login{max-width:360px;margin:9vh auto;padding:0 16px}
+.side{position:fixed;left:0;top:0;bottom:0;width:236px;background:var(--pri);color:#fff;display:flex;flex-direction:column;z-index:5;transition:transform .2s}
+.side h1{color:#fff;font-size:17px;padding:16px 16px 2px;margin:0}
+.side .sub{padding:0 16px 12px;font-size:11px;color:#b9d2db}
+.side nav{flex:1;overflow:auto}
+.side nav a{display:block;padding:10px 16px;color:#dbe9ee;text-decoration:none;cursor:pointer;border-left:4px solid transparent}
+.side nav a:hover{background:#2a6074}
+.side nav a.on{background:#2a6074;border-left-color:#ffd166;color:#fff;font-weight:bold}
+.side .me{padding:12px 16px;border-top:1px solid #3b6b7d;font-size:12px}
+.side .me button{margin-top:6px;margin-right:4px}
+.main{margin-left:236px;padding:20px;min-height:100vh}
+.top{display:none;background:var(--pri);color:#fff;padding:10px 14px;align-items:center;gap:10px;position:sticky;top:0;z-index:4}
+.top button{background:transparent;border:1px solid #fff;color:#fff;border-radius:6px;padding:4px 10px}
+@media(max-width:860px){.side{transform:translateX(-100%)}.side.open{transform:none}.main{margin-left:0;padding:12px}.top{display:flex}.grid2,.grid3{grid-template-columns:1fr}}
+#toast{position:fixed;right:14px;bottom:14px;z-index:99;display:flex;flex-direction:column;gap:8px}
+.tst{background:#222;color:#fff;padding:10px 14px;border-radius:8px;max-width:340px}
+.tst.err{background:var(--err)}.tst.ok{background:var(--ok)}
+#loading{position:fixed;inset:0;background:rgba(255,255,255,.6);display:none;align-items:center;justify-content:center;z-index:98;font-weight:bold;color:var(--pri)}
+dialog{border:0;border-radius:12px;padding:20px;max-width:640px;width:94vw;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.dlg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.bar{height:14px;background:#dfe9ee;border-radius:7px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--pri2)}
+.note{background:var(--warnbg);border-left:4px solid var(--warn);padding:10px 12px;border-radius:6px;margin-bottom:14px}
+.info{background:#e8f1f5;border-left:4px solid var(--pri2);padding:10px 12px;border-radius:6px;margin-bottom:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.row>*{width:auto}
+code,pre{background:#eef3f5;border-radius:6px;font-family:Consolas,monospace;font-size:12px}
+pre{padding:10px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+td select{min-width:54px;padding:4px}
+@media print{.side,.top,.noprint,#toast{display:none!important}.main{margin:0;padding:0}body{background:#fff}.card{border:0}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<div id="loading">Memproses...</div>
+<dialog id="dlg"></dialog>
+
+<script>
+/* ===================================================================
+   SISKALA-RS - Frontend
+   PULIHKAN setelah setiap penggantian file: isi API_URL dengan URL Web App (/exec)
+   =================================================================== */
+const API_URL = 'https://script.google.com/macros/s/AKfycby5w3XqmNIRKnCkNQ6REWJok6_9GM-1NOZ_oqnlV1kHx68UKmM_7O3MKi2z92UCQkO-/exec';
+
+const S = { token: sessionStorage.getItem('sk_token') || '', user: null, boot: null, page: 'dash' };
+try { S.user = JSON.parse(sessionStorage.getItem('sk_user') || 'null'); } catch (e) { S.user = null; }
+
+/* ---------------------------------------------------------------- util */
+const $ = (s, r) => (r || document).querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = n => (n === '' || n == null || isNaN(n)) ? '-' : Math.round(n).toLocaleString('id-ID');
+const rp = n => (n === '' || n == null || isNaN(n)) ? '-' : 'Rp ' + Math.round(n).toLocaleString('id-ID');
+const pct = (x, d) => (x * 100).toFixed(d == null ? 1 : d).replace('.', ',') + '%';
+const D = ['sen', 'sel', 'rab', 'kam', 'jum', 'sab', 'min'];
+const DN = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+const STAFF = ['SuperAdmin', 'HRD', 'Keuangan', 'Wadir', 'Direktur'];
+const can = (...roles) => S.user && (S.user.role === 'SuperAdmin' || roles.indexOf(S.user.role) >= 0);
+const isStaff = () => S.user && STAFF.indexOf(S.user.role) >= 0;
+const curPeriode = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+const today = () => new Date().toISOString().slice(0, 10);
+
+let busyN = 0;
+function busy(d) { busyN += d; $('#loading').style.display = busyN > 0 ? 'flex' : 'none'; }
+function toast(msg, type) {
+  const t = document.createElement('div'); t.className = 'tst ' + (type || ''); t.textContent = msg;
+  $('#toast').appendChild(t); setTimeout(() => t.remove(), type === 'err' ? 7000 : 3500);
+}
+async function api(action, data, opts) {
+  opts = opts || {};
+  if (API_URL === 'API_URL') throw new Error('API_URL belum diisi. Edit index.html dan pasang URL Web App Apps Script.');
+  if (!opts.quiet) busy(1);
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, token: S.token, data: data || {} }) });
+    const j = await res.json();
+    if (!j.ok) { if (/Sesi berakhir/.test(j.error)) { logoutLocal(); } throw new Error(j.error); }
+    return j.data;
+  } finally { if (!opts.quiet) busy(-1); }
+}
+async function run(fn) { try { return await fn(); } catch (e) { toast(e.message, 'err'); } }
+function closeDlg() { const d = $('#dlg'); if (d.open) d.close(); }
+
+function field(f, v) {
+  const val = v !== undefined && v !== null ? v : (f.def !== undefined ? f.def : '');
+  let inp;
+  if (f.type === 'select') inp = `<select name="${f.k}">${f.opts.map(o => `<option value="${esc(o[0])}" ${String(o[0]) === String(val) ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`;
+  else if (f.type === 'textarea') inp = `<textarea name="${f.k}" rows="3">${esc(val)}</textarea>`;
+  else inp = `<input name="${f.k}" type="${f.type || 'text'}" value="${esc(val)}" ${f.step ? `step="${f.step}"` : ''} ${f.min != null ? `min="${f.min}"` : ''} ${f.max != null ? `max="${f.max}"` : ''} ${f.req ? 'required' : ''} ${f.ph ? `placeholder="${esc(f.ph)}"` : ''}>`;
+  return `<label class="fld"><span>${esc(f.label)}</span>${inp}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</label>`;
+}
+function openForm(title, fields, values, onSubmit, saveLabel) {
+  const d = $('#dlg');
+  d.innerHTML = `<form id="dform"><h3>${esc(title)}</h3><div class="grid2">${fields.map(f => field(f, values ? values[f.k] : undefined)).join('')}</div><div class="dlg-actions"><button type="button" class="btn ghost" onclick="closeDlg()">Batal</button><button class="btn" type="submit">${esc(saveLabel || 'Simpan')}</button></div></form>`;
+  d.showModal();
+  $('#dform').onsubmit = async ev => {
+    ev.preventDefault(); const o = {}; new FormData(ev.target).forEach((v, k) => { o[k] = v; });
+    try { await onSubmit(o); closeDlg(); } catch (e) { toast(e.message, 'err'); }
+  };
+}
+function csvDownload(name, rows) {
+  const t = rows.map(r => r.map(v => { const s = String(v == null ? '' : v); return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(';')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + t], { type: 'text/csv;charset=utf-8' }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+const gol = k => (S.boot.struktur.filter(g => g.kode === k)[0]) || null;
+const jabAktif = () => S.boot.jabatan.filter(j => j.aktif !== 'N');
+
+/* ---------------------------------------------------------------- shell */
+const MENU = [
+  { id: 'dash', label: 'Dashboard', ok: () => isStaff() },
+  { id: 'struktur', label: 'Struktur & Skala Upah', ok: () => isStaff() },
+  { id: 'jabatan', label: 'Evaluasi Jabatan', ok: () => isStaff() },
+  { id: 'manajer', label: 'Manajer & Jadwal Jam', ok: () => isStaff() },
+  { id: 'kalk', label: 'Kalkulator Upah', ok: () => isStaff() },
+  { id: 'penetapan', label: 'Penetapan & Persetujuan', ok: () => isStaff() },
+  { id: 'laporan', label: 'Laporan Biaya', ok: () => isStaff() },
+  { id: 'import', label: 'Import & Integrasi', ok: () => can('HRD') },
+  { id: 'setting', label: 'Pengaturan', ok: () => can('Keuangan') },
+  { id: 'pengguna', label: 'Pengguna & Audit', ok: () => can() },
+  { id: 'saya', label: 'Data Saya', ok: () => S.user && S.user.role === 'Manajer' }
+];
+
+function showLogin() {
+  $('#app').innerHTML = `<div id="login"><div class="card"><h1>SISKALA-RS</h1><p class="mut">Sistem Struktur & Skala Upah Manajer<br>RSU Allam Medica</p>
+  <label class="fld"><span>Username</span><input id="lu" autocomplete="username"></label>
+  <label class="fld"><span>PIN</span><input id="lp" type="password" inputmode="numeric" autocomplete="current-password"></label>
+  <button class="btn" style="width:100%" onclick="doLogin()">Masuk</button>
+  <p><small>Data upah bersifat rahasia. Akses dicatat dalam audit.</small></p></div></div>`;
+  $('#lp').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+}
+function doLogin() {
+  run(async () => {
+    const r = await api('login', { username: $('#lu').value, pin: $('#lp').value });
+    S.token = r.token; S.user = r.user;
+    sessionStorage.setItem('sk_token', r.token); sessionStorage.setItem('sk_user', JSON.stringify(r.user));
+    S.page = S.user.role === 'Manajer' ? 'saya' : 'dash';
+    await start();
+  });
+}
+function logoutLocal() {
+  sessionStorage.removeItem('sk_token'); sessionStorage.removeItem('sk_user');
+  S.token = ''; S.user = null; S.boot = null; showLogin();
+}
+async function doLogout() { try { await api('logout', {}, { quiet: true }); } catch (e) { /* abaikan */ } logoutLocal(); }
+
+async function start() {
+  if (isStaff()) S.boot = await api('bootstrap');
+  shell();
+}
+function shell() {
+  const items = MENU.filter(m => m.ok());
+  $('#app').innerHTML = `<div class="top"><button onclick="document.querySelector('.side').classList.toggle('open')">Menu</button><b>SISKALA-RS</b></div>
+  <aside class="side"><h1>SISKALA-RS</h1><div class="sub">Struktur & Skala Upah Manajer</div>
+  <nav>${items.map(m => `<a data-p="${m.id}" onclick="go('${m.id}')">${esc(m.label)}</a>`).join('')}</nav>
+  <div class="me"><b>${esc(S.user.nama)}</b><br>${esc(S.user.role)}<br><button class="btn sm ghost" onclick="ubahPin()">Ubah PIN</button><button class="btn sm ghost" onclick="doLogout()">Keluar</button></div></aside>
+  <main class="main" id="main"></main>`;
+  go(items.some(m => m.id === S.page) ? S.page : items[0].id);
+}
+function go(p) {
+  S.page = p;
+  document.querySelectorAll('.side nav a').forEach(a => a.classList.toggle('on', a.dataset.p === p));
+  document.querySelector('.side').classList.remove('open');
+  $('#main').innerHTML = '<p class="mut">Memuat...</p>';
+  run(() => PAGES[p]());
+}
+async function reload() { S.boot = await api('bootstrap'); }
+function ubahPin() {
+  openForm('Ubah PIN', [
+    { k: 'pin_lama', label: 'PIN lama', type: 'password', req: true },
+    { k: 'pin_baru', label: 'PIN baru (6-12 digit angka)', type: 'password', req: true }
+  ], null, async o => { await api('ubahPin', o); toast('PIN diubah', 'ok'); });
+}
+
+/* ---------------------------------------------------------------- halaman */
+const PAGES = {};
+
+PAGES.dash = async () => {
+  const B = S.boot, per = curPeriode();
+  let lap = null; try { lap = await api('laporan', { periode: per }, { quiet: true }); } catch (e) { /* belum ada */ }
+  const aktif = B.pegawai.filter(p => p.status !== 'Nonaktif');
+  const noJam = aktif.filter(p => p.jam_minggu == null), noKpi = aktif.filter(p => p.kpi_terakhir == null), noMulai = aktif.filter(p => !p.mulai_manajerial);
+  const noUpah = aktif.filter(p => !(Number(p.upah_saat_ini) > 0));
+  const maxN = Math.max(1, ...B.struktur.map(g => aktif.filter(p => p.golongan === g.kode).length));
+  $('#main').innerHTML = `<h2>Dashboard</h2>
+  <div class="cards">
+   <div class="card"><div class="stat">${jabAktif().length}</div><div class="statl">Jabatan manajer aktif</div></div>
+   <div class="card"><div class="stat">${aktif.length}</div><div class="statl">Manajer aktif</div></div>
+   <div class="card"><div class="stat">${B.struktur.length}</div><div class="statl">Golongan (${esc(B.struktur.map(g => g.kode).join(', '))})</div></div>
+   <div class="card"><div class="stat">${lap ? rp(lap.total.total_bulan) : '-'}</div><div class="statl">Biaya per bulan, periode ${per}${lap ? '' : ' (belum ada penetapan)'}</div></div>
+  </div>
+  <div class="grid2">
+   <div class="card"><h3>Sebaran manajer per golongan</h3>${B.struktur.map(g => { const n = aktif.filter(p => p.golongan === g.kode).length; return `<div style="margin:8px 0"><b>${esc(g.kode)}</b> <small>${rp(g.min)} - ${rp(g.max)}</small> <span style="float:right">${n} orang</span><div class="bar"><i style="width:${n / maxN * 100}%"></i></div></div>`; }).join('')}</div>
+   <div class="card"><h3>Kelengkapan data</h3>
+    <p>${noJam.length ? `<span class="pos-bawah">${noJam.length}</span>` : '0'} manajer belum punya jadwal jam kerja ${noJam.length ? '(dihitung jam penuh)' : ''}</p>
+    <p>${noKpi.length ? `<span class="pos-bawah">${noKpi.length}</span>` : '0'} manajer belum punya skor KPI ${noKpi.length ? '(tukin 0)' : ''}</p>
+    <p>${noMulai.length ? `<span class="pos-bawah">${noMulai.length}</span>` : '0'} manajer belum diisi tanggal mulai manajerial</p>
+    <p>${noUpah.length ? `<span class="pos-bawah">${noUpah.length}</span>` : '0'} manajer belum diisi upah saat ini (tidak bisa dibandingkan)</p>
+    ${lap ? `<h3 style="margin-top:14px">Posisi upah saat ini terhadap skala</h3><p>Di bawah range: <b class="pos-bawah">${lap.posisi['Di bawah range'] || 0}</b> &nbsp; Dalam range: <b class="pos-dalam">${lap.posisi['Dalam range'] || 0}</b> &nbsp; Di atas range: <b class="pos-atas">${lap.posisi['Di atas range'] || 0}</b></p>
+    <p>Kebutuhan penyesuaian ke batas bawah: <b>${rp(lap.kebutuhan_penyesuaian_tahun)}</b> per tahun (13 bulan)</p>` : ''}
+   </div>
+  </div>
+  ${lap && lap.uji ? `<div class="${lap.uji.status === 'Dalam batas' ? 'info' : 'note'}">Uji kemampuan: biaya manajer ${pct(lap.uji.porsi)} dari biaya SDM RS (batas ${pct(lap.uji.batas)}). Status: <b>${esc(lap.uji.status)}</b></div>` : ''}`;
+};
+
+PAGES.struktur = async () => {
+  const B = S.boot, c = B.cfg;
+  const jabPer = k => jabAktif().filter(j => j.golongan === k).map(j => esc(j.nama)).join('<br>') || '-';
+  $('#main').innerHTML = `<div class="row noprint"><h2 style="margin:0;flex:1">Struktur & Skala Upah Manajer</h2><button class="btn ghost" onclick="window.print()">Cetak</button></div>
+  <p class="mut">Upah Tetap per bulan untuk jam kerja penuh (${c.jam_standar} jam/minggu). Acuan UMK Brebes 2026: ${rp(c.umk)}. Upah dibayar = nilai skala x faktor jam kerja.</p>
+  <h3>Rentang upah per golongan</h3><div class="wrap"><table><tr><th>Golongan</th><th class="c">Poin</th><th class="c">Spread</th><th class="r">Terkecil</th><th class="r">Midpoint</th><th class="r">Terbesar</th><th class="c">x UMK</th><th class="c">Naik midpoint</th><th class="c">Tumpang tindih</th><th>Jabatan</th></tr>
+  ${B.struktur.map(g => `<tr><td><b>${esc(g.kode)}</b></td><td class="c">${g.poin_min}-${g.poin_max}</td><td class="c">${pct(g.spread, 0)}</td><td class="r">${num(g.min)}</td><td class="r"><b>${num(g.mid)}</b></td><td class="r">${num(g.max)}</td><td class="c">${g.rasio_umk.min.toFixed(2)} - ${g.rasio_umk.max.toFixed(2)}</td><td class="c">${g.kenaikan_mid ? pct(g.kenaikan_mid) : '-'}</td><td class="c">${g.kenaikan_mid ? pct(g.tumpang_tindih, 0) : '-'}</td><td>${jabPer(g.kode)}</td></tr>`).join('')}</table></div>
+  <h3>Skala 7 step (Upah Tetap, Rp per bulan, jam penuh)</h3><div class="wrap"><table><tr><th>Golongan</th>${[1, 2, 3, 4, 5, 6, 7].map(i => `<th class="r">Step ${i}</th>`).join('')}</tr>
+  ${B.struktur.map(g => `<tr><td><b>${esc(g.kode)}</b></td>${g.steps.map(v => `<td class="r">${num(v)}</td>`).join('')}</tr>`).join('')}</table></div>
+  <h3>Tarif per jam (Rp)</h3><div class="wrap"><table><tr><th>Golongan</th><th class="r">Terkecil</th><th class="r">Midpoint</th><th class="r">Terbesar</th></tr>
+  ${B.struktur.map(g => `<tr><td><b>${esc(g.kode)}</b></td><td class="r">${num(g.jam.min)}</td><td class="r">${num(g.jam.mid)}</td><td class="r">${num(g.jam.max)}</td></tr>`).join('')}</table></div>
+  <div class="info">Manajer berjadwal tidak penuh dibayar menurut faktor jam: total jam kerja per minggu dibagi ${c.jam_standar}. Jam tiap hari boleh berbeda. Golongan tetap ditentukan jabatan, bukan jam kerja.</div>`;
+};
+
+/* ---- Evaluasi Jabatan */
+let JAB = [];
+function jabPoin(row) { return Math.round(S.boot.faktor.reduce((s, f, i) => s + Number(f.bobot) * Number(row['f' + (i + 1)] || 0), 0) * 200); }
+function jabGol(p) { let k = S.boot.struktur[0].kode; S.boot.struktur.forEach(g => { if (p >= g.poin_min) k = g.kode; }); return k; }
+function jabRowHtml(j, i) {
+  const ed = can('HRD');
+  const sel = n => `<td class="c"><select ${ed ? '' : 'disabled'} onchange="jabChange(${i},${n},this.value)">${[1, 2, 3, 4, 5].map(v => `<option ${Number(j['f' + n]) === v ? 'selected' : ''}>${v}</option>`).join('')}</select></td>`;
+  return `<tr id="jr${i}"><td>${ed ? `<input value="${esc(j.nama)}" onchange="JAB[${i}].nama=this.value" style="min-width:210px">` : esc(j.nama)}<br>${ed ? `<input value="${esc(j.unit)}" placeholder="Unit" onchange="JAB[${i}].unit=this.value" style="width:110px">
+  <select onchange="JAB[${i}].jenis=this.value" style="width:auto"><option ${j.jenis === 'Non-medis' ? 'selected' : ''}>Non-medis</option><option ${j.jenis === 'Medis' ? 'selected' : ''}>Medis</option></select>` : `<small>${esc(j.unit)} - ${esc(j.jenis)}</small>`}</td>
+  ${[1, 2, 3, 4, 5, 6, 7, 8].map(sel).join('')}<td class="c" id="jp${i}"><b>${jabPoin(j)}</b></td><td class="c" id="jg${i}"><b>${jabGol(jabPoin(j))}</b></td>
+  <td class="c">${ed ? `<button class="btn sm" onclick="jabSave(${i})">Simpan</button>${j.id ? ` <button class="btn sm ghost" onclick="jabToggle(${i})">${j.aktif === 'N' ? 'Aktifkan' : 'Nonaktifkan'}</button>` : ''}` : (j.aktif === 'N' ? 'Nonaktif' : '')}</td></tr>`;
+}
+PAGES.jabatan = async () => {
+  JAB = S.boot.jabatan.map(j => Object.assign({}, j));
+  const F = S.boot.faktor;
+  $('#main').innerHTML = `<h2>Evaluasi Jabatan (metode poin faktor)</h2>
+  <p class="mut">Nilai tiap jabatan pada ${F.length} faktor (level 1 rendah sampai 5 sangat tinggi). Poin = jumlah (bobot x level) x 200, maksimum 1.000. Golongan terisi otomatis dari ambang poin. Skor adalah usulan awal; validasi dengan panel (Direktur, Wadir, HRD, Keuangan).</p>
+  <div class="wrap"><table id="jtab"><tr><th>Jabatan</th>${F.map(f => `<th class="c" title="${esc(f.deskripsi)}">${esc(f.nama)}<br>${pct(f.bobot, 0)}</th>`).join('')}<th class="c">Poin</th><th class="c">Gol.</th><th></th></tr>
+  ${JAB.map(jabRowHtml).join('')}</table></div>
+  ${can('HRD') ? '<button class="btn" onclick="jabBaru()">+ Tambah jabatan</button>' : ''}`;
+};
+window.jabChange = (i, n, v) => { JAB[i]['f' + n] = Number(v); const p = jabPoin(JAB[i]); $('#jp' + i).innerHTML = `<b>${p}</b>`; $('#jg' + i).innerHTML = `<b>${jabGol(p)}</b>`; };
+window.jabSave = i => run(async () => { await api('saveJabatan', JAB[i]); await reload(); toast('Jabatan disimpan', 'ok'); PAGES.jabatan(); });
+window.jabToggle = i => run(async () => {
+  const j = JAB[i]; if (j.aktif !== 'N' && !confirm('Nonaktifkan jabatan ini? Manajer di jabatan ini tidak ikut penetapan baru.')) return;
+  j.aktif = j.aktif === 'N' ? 'Y' : 'N'; await api('saveJabatan', j); await reload(); PAGES.jabatan();
+});
+window.jabBaru = () => {
+  openForm('Tambah jabatan', [
+    { k: 'nama', label: 'Nama jabatan', req: true }, { k: 'unit', label: 'Unit / bagian' },
+    { k: 'jenis', label: 'Jenis', type: 'select', opts: [['Non-medis', 'Non-medis'], ['Medis', 'Medis']] }
+  ].concat(S.boot.faktor.map((f, i) => ({ k: 'f' + (i + 1), label: f.nama + ' (1-5)', type: 'number', min: 1, max: 5, step: 1, def: 3, req: true }))), null,
+  async o => { await api('saveJabatan', o); await reload(); toast('Jabatan ditambahkan', 'ok'); PAGES.jabatan(); });
+};
+
+/* ---- Manajer & jadwal jam */
+PAGES.manajer = async () => {
+  const B = S.boot, ed = can('HRD');
+  $('#main').innerHTML = `<div class="row"><h2 style="margin:0;flex:1">Manajer & Jadwal Jam Kerja</h2>${ed ? '<button class="btn" onclick="pgForm()">+ Tambah manajer</button>' : ''}</div>
+  <div class="wrap"><table><tr><th>Nama</th><th>NIP</th><th>Jabatan</th><th class="c">Gol.</th><th class="c">Pend.</th><th class="c">Mulai manajerial</th><th class="c">Sert.</th><th class="r">Upah saat ini</th><th class="c">Jam/minggu</th><th class="c">KPI</th><th>Status</th><th></th></tr>
+  ${B.pegawai.map(p => `<tr><td><b>${esc(p.nama)}</b></td><td>${esc(p.nip)}</td><td>${esc(p.jabatan_nama)}</td><td class="c">${esc(p.golongan)}</td><td class="c">${esc(p.pendidikan)}</td><td class="c">${esc(p.mulai_manajerial)}</td><td class="c">${p.sertifikasi}</td>
+  <td class="r">${num(p.upah_saat_ini)}</td><td class="c">${p.jam_minggu == null ? '<span class="pos-bawah">belum</span>' : p.jam_minggu}</td><td class="c">${p.kpi_terakhir == null ? '<span class="pos-bawah">belum</span>' : pct(p.kpi_terakhir, 0) + '<br><small>' + esc(p.kpi_periode) + '</small>'}</td><td>${esc(p.status)}</td>
+  <td>${ed ? `<button class="btn sm" onclick="pgForm('${p.id}')">Edit</button> <button class="btn sm ghost" onclick="jdForm('${p.id}')">Jadwal</button> <button class="btn sm ghost" onclick="kpiForm('${p.id}')">KPI</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="12" class="mut">Belum ada manajer.</td></tr>'}</table></div>
+  <div class="info">Jadwal jam kerja menentukan faktor jam (jam per minggu dibagi ${B.cfg.jam_standar}). Isi jam nyata tiap hari; yang dihitung adalah total jam mingguan.</div>`;
+};
+window.pgForm = id => {
+  const p = id ? S.boot.pegawai.filter(x => x.id === id)[0] : { pendidikan: 'S1', status: 'Aktif', sertifikasi: 0, upah_saat_ini: 0 };
+  openForm(id ? 'Edit manajer' : 'Tambah manajer', [
+    { k: 'nama', label: 'Nama', req: true }, { k: 'nip', label: 'NIP / ID pegawai' },
+    { k: 'jabatan_id', label: 'Jabatan', type: 'select', opts: jabAktif().map(j => [j.id, j.nama + ' (' + j.golongan + ')']) },
+    { k: 'pendidikan', label: 'Pendidikan tertinggi', type: 'select', opts: [['D3', 'D3'], ['S1', 'S1 / Profesi'], ['S2', 'S2 / Spesialis'], ['S3', 'S3']] },
+    { k: 'mulai_manajerial', label: 'Mulai jabatan manajerial', type: 'date' }, { k: 'sertifikasi', label: 'Jumlah sertifikasi relevan', type: 'number', min: 0, step: 1 },
+    { k: 'step_override', label: 'Step manual (opsional)', type: 'select', opts: [['', 'Otomatis'], [1, 'Step 1'], [2, 'Step 2'], [3, 'Step 3'], [4, 'Step 4'], [5, 'Step 5'], [6, 'Step 6'], [7, 'Step 7']], hint: 'Isi hanya bila penempatan awal perlu menyimpang dari rumus.' },
+    { k: 'upah_saat_ini', label: 'Upah tetap saat ini (Rp/bulan)', type: 'number', min: 0, step: 50000, hint: 'Gaji pokok + tunjangan tetap. Tanpa jasa medis dan komponen variabel.' },
+    { k: 'status', label: 'Status', type: 'select', opts: [['Aktif', 'Aktif'], ['Nonaktif', 'Nonaktif']] }, { k: 'catatan', label: 'Catatan', type: 'textarea' }
+  ], p, async o => { if (id) o.id = id; await api('savePegawai', o); await reload(); toast('Tersimpan', 'ok'); PAGES.manajer(); });
+};
+window.jdForm = id => {
+  const p = S.boot.pegawai.filter(x => x.id === id)[0], j = p.jadwal || {};
+  const std = S.boot.cfg.jam_standar;
+  const d = $('#dlg');
+  d.innerHTML = `<form id="dform"><h3>Jadwal jam kerja: ${esc(p.nama)}</h3>
+  <label class="fld"><span>Berlaku mulai</span><input name="berlaku_mulai" type="date" value="${today()}" required></label>
+  <div class="grid3">${D.map((k, i) => `<label class="fld"><span>${DN[i]} (jam)</span><input name="${k}" type="number" min="0" max="24" step="0.5" value="${j[k] != null ? j[k] : 0}" oninput="jdHitung(${std})"></label>`).join('')}</div>
+  <div class="info" id="jdinfo"></div>
+  <label class="fld"><span>Keterangan</span><input name="keterangan" placeholder="Mis. hadir Senin, Selasa, Kamis penuh"></label>
+  <div class="dlg-actions"><button type="button" class="btn ghost" onclick="closeDlg()">Batal</button><button class="btn" type="submit">Simpan</button></div></form>`;
+  d.showModal(); jdHitung(std);
+  $('#dform').onsubmit = async ev => {
+    ev.preventDefault(); const o = { pegawai_id: id }; new FormData(ev.target).forEach((v, k) => { o[k] = v; });
+    try { await api('saveJadwal', o); await reload(); closeDlg(); toast('Jadwal tersimpan', 'ok'); PAGES.manajer(); } catch (e) { toast(e.message, 'err'); }
+  };
+};
+window.jdHitung = std => {
+  let t = 0; D.forEach(k => { t += Number($('#dform [name=' + k + ']').value || 0); });
+  const f = Math.min(1, t / std), min = S.boot.cfg.jam_min;
+  $('#jdinfo').innerHTML = `Total <b>${t}</b> jam/minggu, faktor jam <b>${f.toFixed(3)}</b> (${pct(f, 1)} dari jam penuh ${std}).${t < min ? ` <b class="pos-bawah">Di bawah jam minimum jabatan manajer (${min}).</b>` : ''}`;
+};
+window.kpiForm = id => {
+  const p = S.boot.pegawai.filter(x => x.id === id)[0];
+  openForm('Skor KPI: ' + p.nama, [
+    { k: 'periode', label: 'Periode', type: 'month', def: curPeriode(), req: true },
+    { k: 'skor_kpi', label: 'Skor KPI (%)', type: 'number', min: 0, max: 150, step: 0.01, req: true, def: p.kpi_terakhir != null ? Math.round(p.kpi_terakhir * 10000) / 100 : '', hint: 'Mis. 92 untuk 92%. Bisa juga diisi otomatis dari SIMKIN-RS lewat menu Import & Integrasi.' },
+    { k: 'catatan', label: 'Catatan' }
+  ], null, async o => { o.pegawai_id = id; await api('saveKpi', o); await reload(); toast('KPI tersimpan', 'ok'); PAGES.manajer(); });
+};
+
+/* ---- Kalkulator */
+function hasilHtml(h) {
+  return `<div class="cards">
+  <div class="card"><div class="statl">Golongan / Step</div><div class="stat">${esc(h.golongan)} / Step ${h.step}</div><small>${esc(h.jabatan)} (${h.poin_jabatan} poin)</small></div>
+  <div class="card"><div class="statl">Faktor jam kerja</div><div class="stat">${h.faktor_jam.toFixed(3)}</div><small>${h.jam_minggu} jam/minggu. ${esc(h.cek_jam)}</small></div>
+  <div class="card"><div class="statl">Upah Tetap dibayar / bulan</div><div class="stat">${rp(h.upah_tetap)}</div><small>Jam penuh: ${rp(h.upah_fte)}</small></div>
+  <div class="card"><div class="statl">Total biaya RS / bulan</div><div class="stat">${rp(h.total_bulan)}</div><small>Per tahun (12 bln + THR): ${rp(h.biaya_tahun)}</small></div></div>
+  <div class="wrap"><table><tr><th>Komponen</th><th class="r">Jam penuh</th><th class="r">Dibayar</th></tr>
+  <tr><td>Gaji pokok</td><td class="r">${num(h.gapok_fte)}</td><td class="r">${num(h.gaji_pokok)}</td></tr>
+  <tr><td>Tunjangan jabatan</td><td class="r">${num(h.tunj_fte)}</td><td class="r">${num(h.tunj_jabatan)}</td></tr>
+  <tr class="tot"><td>Upah Tetap</td><td class="r">${num(h.upah_fte)}</td><td class="r">${num(h.upah_tetap)}</td></tr>
+  <tr><td>Tunjangan kinerja (maks ${num(h.tukin_max)})</td><td class="r"></td><td class="r">${num(h.tukin)}</td></tr>
+  <tr><td>BPJS pemberi kerja: Kesehatan ${num(h.bpjs.kes)}, JHT ${num(h.bpjs.jht)}, JP ${num(h.bpjs.jp)}, JKK ${num(h.bpjs.jkk)}, JKM ${num(h.bpjs.jkm)}</td><td class="r"></td><td class="r">${num(h.bpjs.total)}</td></tr>
+  <tr class="tot"><td>Total biaya per bulan</td><td class="r"></td><td class="r">${num(h.total_bulan)}</td></tr></table></div>
+  <p class="mut">Tarif per jam golongan ini: ${rp(h.tarif_jam)}. Compa-ratio terhadap midpoint: ${h.compa.toFixed(2)}. Rentang golongan disesuaikan jam: ${rp(h.range_jam.min)} - ${rp(h.range_jam.max)}. Poin step: ${h.poin_step.manual ? 'manual' : `pendidikan ${h.poin_step.pend}, masa kerja ${h.poin_step.masa}, sertifikasi ${h.poin_step.sert}, kinerja ${h.poin_step.kin}`}.</p>`;
+}
+PAGES.kalk = async () => {
+  const B = S.boot;
+  $('#main').innerHTML = `<h2>Kalkulator Upah & Biaya</h2><div class="card">
+  <div class="grid2"><label class="fld"><span>Isi dari data manajer (opsional)</span><select id="kp" onchange="kalkIsi()"><option value="">- manual -</option>${B.pegawai.map(p => `<option value="${p.id}">${esc(p.nama)}</option>`).join('')}</select></label>
+  <label class="fld"><span>Jabatan</span><select id="kj">${jabAktif().map(j => `<option value="${j.id}">${esc(j.nama)} (${j.golongan})</option>`).join('')}</select></label>
+  <label class="fld"><span>Pendidikan</span><select id="ke"><option>D3</option><option selected>S1</option><option>S2</option><option>S3</option></select></label>
+  <label class="fld"><span>Masa kerja manajerial (tahun)</span><input id="km" type="number" min="0" step="0.5" value="4"></label>
+  <label class="fld"><span>Jumlah sertifikasi</span><input id="ks" type="number" min="0" step="1" value="1"></label>
+  <label class="fld"><span>Skor KPI (%)</span><input id="kk" type="number" min="0" max="150" step="0.1" value="92"></label></div>
+  <h3>Jam kerja per hari</h3><div class="grid3">${D.map((k, i) => `<label class="fld"><span>${DN[i]}</span><input id="kd${i}" type="number" min="0" max="24" step="0.5" value="${[7, 7, 7, 7, 7, 5, 0][i]}"></label>`).join('')}</div>
+  <button class="btn" onclick="kalkHitung()">Hitung</button></div><div id="kres"></div>`;
+};
+window.kalkIsi = () => {
+  const p = S.boot.pegawai.filter(x => x.id === $('#kp').value)[0]; if (!p) return;
+  $('#kj').value = p.jabatan_id; $('#ke').value = p.pendidikan; $('#ks').value = p.sertifikasi;
+  $('#kk').value = p.kpi_terakhir != null ? Math.round(p.kpi_terakhir * 10000) / 100 : '';
+  if (p.mulai_manajerial) $('#km').value = Math.max(0, (Date.now() - Date.parse(p.mulai_manajerial)) / 31557600000).toFixed(1);
+  if (p.jadwal) D.forEach((k, i) => { $('#kd' + i).value = p.jadwal[k]; });
+};
+window.kalkHitung = () => run(async () => {
+  const h = await api('simulasi', { jabatan_id: $('#kj').value, pendidikan: $('#ke').value, masa_tahun: $('#km').value, sertifikasi: $('#ks').value, kpi: $('#kk').value, jam: D.map((k, i) => Number($('#kd' + i).value || 0)) });
+  $('#kres').innerHTML = hasilHtml(h);
+});
+
+/* ---- Penetapan */
+let PEN = [];
+const posCls = p => p === 'Di bawah range' ? 'pos-bawah' : (p === 'Di atas range' ? 'pos-atas' : 'pos-dalam');
+PAGES.penetapan = async () => {
+  const per = S.periode || curPeriode(); S.periode = per;
+  $('#main').innerHTML = `<h2>Penetapan & Persetujuan Upah</h2>
+  <div class="row noprint"><input type="month" id="pper" value="${per}" style="width:170px" onchange="S.periode=this.value;penMuat()">
+  ${can('HRD') ? '<button class="btn" onclick="penGen()">Hasilkan draft</button><button class="btn ghost" onclick="penAjukan()">Ajukan terpilih</button>' : ''}
+  <button class="btn ghost" onclick="penSetuju()">Setujui terpilih</button><button class="btn err" onclick="penTolak()">Tolak terpilih</button>
+  <button class="btn ghost" onclick="penCetak()">Cetak pemberitahuan</button><button class="btn ghost" onclick="penCsv()">Unduh CSV</button></div>
+  <p class="mut">Alur persetujuan: HRD mengajukan, lalu ${esc(String(S.boot.cfg.alur_approval).split(',').join(' > '))}. Nomor SK dibuat saat tahap terakhir menyetujui.</p><div id="pbody"></div>`;
+  await penMuat();
+};
+async function penMuat() {
+  PEN = await api('listPenetapan', { periode: S.periode });
+  const t = k => PEN.reduce((a, r) => a + Number(r[k] || 0), 0);
+  $('#pbody').innerHTML = `<div class="wrap"><table><tr><th><input type="checkbox" onclick="document.querySelectorAll('.pc').forEach(c=>c.checked=this.checked)"></th><th>Nama / jabatan</th><th class="c">Gol / Step</th><th class="c">Jam (faktor)</th><th class="r">Upah Tetap</th><th class="r">Tukin</th><th class="r">BPJS</th><th class="r">Total/bln</th><th class="r">Upah saat ini</th><th>Status</th></tr>
+  ${PEN.map(r => `<tr><td><input type="checkbox" class="pc" value="${r.id}"></td><td><b>${esc(r.nama)}</b><br><small>${esc(r.jabatan)}</small>${r.peringatan ? `<br><small class="pos-atas">${esc(r.peringatan)}</small>` : ''}</td>
+  <td class="c">${esc(r.golongan)} / ${r.step}</td><td class="c">${r.jam_minggu}<br><small>${Number(r.faktor_jam).toFixed(3)}</small></td><td class="r">${num(r.upah_tetap)}<br><small>GP ${num(r.gaji_pokok)} + TJ ${num(r.tunj_jabatan)}</small></td><td class="r">${num(r.tukin)}</td><td class="r">${num(r.bpjs_pk)}</td><td class="r"><b>${num(r.total_bulan)}</b></td>
+  <td class="r">${num(r.upah_saat_ini)}<br><small class="${posCls(r.posisi_saat_ini)}">${esc(r.posisi_saat_ini)}${r.kekurangan_ke_min > 0 ? ' (kurang ' + num(r.kekurangan_ke_min) + ')' : ''}</small></td>
+  <td><span class="badge b-${r.status}">${esc(r.status)}${r.tahap ? ': ' + esc(r.tahap) : ''}</span>${r.sk_no ? `<br><small>${esc(r.sk_no)}</small>` : ''}<br><small title="${esc(r.riwayat)}" style="cursor:help">riwayat</small></td></tr>`).join('') || '<tr><td colspan="10" class="mut">Belum ada penetapan untuk periode ini. Klik "Hasilkan draft".</td></tr>'}
+  ${PEN.length ? `<tr class="tot"><td></td><td colspan="3">Total ${PEN.length} manajer</td><td class="r">${num(t('upah_tetap'))}</td><td class="r">${num(t('tukin'))}</td><td class="r">${num(t('bpjs_pk'))}</td><td class="r">${num(t('total_bulan'))}</td><td colspan="2"></td></tr>` : ''}</table></div>`;
+}
+const penIds = () => Array.from(document.querySelectorAll('.pc:checked')).map(c => c.value);
+function hasilMsg(r, kunci) {
+  toast(`${r[kunci]} diproses` + (r.dilewati && r.dilewati.length ? `, ${r.dilewati.length} dilewati: ` + r.dilewati.slice(0, 3).join('; ') : ''), r.dilewati && r.dilewati.length ? 'err' : 'ok');
+}
+window.penGen = () => run(async () => {
+  if (!confirm('Hasilkan draft penetapan untuk periode ' + S.periode + '? Draft/penolakan lama periode ini diganti; yang sudah diajukan atau disetujui dilewati.')) return;
+  const r = await api('generate', { periode: S.periode });
+  toast(r.dibuat + ' draft dibuat' + (r.dilewati.length ? ', dilewati: ' + r.dilewati.join('; ') : ''), 'ok'); await penMuat();
+});
+window.penAjukan = () => run(async () => { const ids = penIds(); if (!ids.length) throw new Error('Pilih baris terlebih dulu'); const r = await api('ajukan', { ids }); toast(r.diajukan + ' diajukan', 'ok'); await penMuat(); });
+window.penSetuju = () => run(async () => { const ids = penIds(); if (!ids.length) throw new Error('Pilih baris terlebih dulu'); const r = await api('setujui', { ids }); hasilMsg(r, 'disetujui'); await penMuat(); });
+window.penTolak = () => run(async () => {
+  const ids = penIds(); if (!ids.length) throw new Error('Pilih baris terlebih dulu');
+  const alasan = prompt('Alasan penolakan (wajib):'); if (!alasan) return;
+  const r = await api('tolak', { ids, catatan: alasan }); hasilMsg(r, 'ditolak'); await penMuat();
+});
+window.penCsv = () => {
+  const h = ['Periode', 'NIP', 'Nama', 'Jabatan', 'Golongan', 'Step', 'Jam/minggu', 'Faktor jam', 'Gaji pokok', 'Tunjangan jabatan', 'Upah tetap', 'Tukin', 'BPJS pemberi kerja', 'Total/bulan', 'Upah saat ini', 'Posisi', 'Kekurangan ke batas bawah', 'Status', 'No SK'];
+  csvDownload('penetapan-upah-' + S.periode + '.csv', [h].concat(PEN.map(r => [r.periode, r.nip, r.nama, r.jabatan, r.golongan, r.step, r.jam_minggu, r.faktor_jam, r.gaji_pokok, r.tunj_jabatan, r.upah_tetap, r.tukin, r.bpjs_pk, r.total_bulan, r.upah_saat_ini, r.posisi_saat_ini, r.kekurangan_ke_min, r.status, r.sk_no])));
+};
+function suratHtml(r, rs, g) {
+  const bln = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const [y, m] = r.periode.split('-');
+  return `<div style="page-break-after:always;padding:30px 40px;font-family:Arial;font-size:13px;line-height:1.5">
+  <h2 style="text-align:center;margin:0">${esc(rs)}</h2><p style="text-align:center;margin:0 0 18px">PEMBERITAHUAN STRUKTUR DAN SKALA UPAH<br>No. SK: ${esc(r.sk_no)}</p>
+  <p>Sesuai ketentuan Peraturan Menteri Ketenagakerjaan Nomor 1 Tahun 2017 tentang Struktur dan Skala Upah, kami memberitahukan penempatan upah Saudara berikut:</p>
+  <table style="border-collapse:collapse;width:100%"><tr><td style="width:36%">Nama</td><td>: ${esc(r.nama)}</td></tr><tr><td>NIP</td><td>: ${esc(r.nip)}</td></tr><tr><td>Jabatan</td><td>: ${esc(r.jabatan)}</td></tr>
+  <tr><td>Golongan jabatan / step</td><td>: ${esc(r.golongan)} / Step ${r.step}</td></tr><tr><td>Berlaku mulai periode</td><td>: ${bln[Number(m) - 1]} ${y}</td></tr>
+  <tr><td>Jam kerja per minggu</td><td>: ${r.jam_minggu} jam (faktor ${Number(r.faktor_jam).toFixed(3)} dari jam penuh)</td></tr>
+  ${g ? `<tr><td>Rentang upah golongan ${esc(g.kode)}</td><td>: ${rp(g.min)} sampai ${rp(g.max)} (jam penuh)</td></tr>` : ''}</table>
+  <p><b>Rincian upah per bulan</b></p>
+  <table style="border-collapse:collapse;width:100%" border="1" cellpadding="5"><tr><td>Gaji pokok</td><td align="right">${rp(r.gaji_pokok)}</td></tr><tr><td>Tunjangan jabatan</td><td align="right">${rp(r.tunj_jabatan)}</td></tr><tr><td><b>Upah tetap</b></td><td align="right"><b>${rp(r.upah_tetap)}</b></td></tr>
+  <tr><td>Tunjangan kinerja periode ini (sesuai pencapaian KPI)</td><td align="right">${rp(r.tukin)}</td></tr></table>
+  <p style="font-size:12px">Komponen variabel (tunjangan kinerja, insentif, jasa medis) mengikuti kebijakan yang berlaku dan tidak termasuk upah tetap. Iuran BPJS dihitung dari upah tetap.</p>
+  <table style="width:100%;margin-top:34px"><tr><td style="width:50%">Penerima,<br><br><br><br>( ${esc(r.nama)} )<br>Tanggal: ____________</td><td>Direktur ${esc(rs)},<br><br><br><br>( ____________________ )</td></tr></table></div>`;
+}
+window.penCetak = () => {
+  const ids = penIds(), rows = PEN.filter(r => r.status === 'Disetujui' && (!ids.length || ids.indexOf(r.id) >= 0));
+  if (!rows.length) return toast('Tidak ada penetapan berstatus Disetujui (pilih baris atau setujui dulu)', 'err');
+  const w = window.open('', '_blank'); if (!w) return toast('Pop-up diblokir browser', 'err');
+  w.document.write('<html><head><title>Pemberitahuan Upah</title></head><body>' + rows.map(r => suratHtml(r, S.boot.cfg.nama_rs, gol(r.golongan))).join('') + '</body></html>');
+  w.document.close(); w.focus(); setTimeout(() => w.print(), 400);
+};
+
+/* ---- Laporan */
+PAGES.laporan = async () => {
+  const per = S.periode || curPeriode(); S.periode = per;
+  $('#main').innerHTML = `<h2>Laporan Biaya Manajer</h2><div class="row noprint"><input type="month" id="lper" value="${per}" style="width:170px" onchange="S.periode=this.value;lapMuat()"><button class="btn ghost" onclick="window.print()">Cetak</button></div><div id="lbody"></div>`;
+  await lapMuat();
+};
+async function lapMuat() {
+  const l = await api('laporan', { periode: S.periode }), t = l.total;
+  $('#lbody').innerHTML = `<p class="mut">Periode ${esc(l.periode)}. Mencakup draft, diajukan, dan disetujui (tanpa yang ditolak). Biaya setahun = 12 bulan + THR 1 bulan upah tetap.</p>
+  <div class="wrap"><table><tr><th>Golongan</th><th class="c">Jumlah</th><th class="r">Upah tetap/bln</th><th class="r">Tukin/bln</th><th class="r">BPJS/bln</th><th class="r">Total/bln</th><th class="r">Biaya setahun</th></tr>
+  ${l.per_golongan.map(g => `<tr><td><b>${esc(g.golongan)}</b></td><td class="c">${g.n}</td><td class="r">${num(g.upah_tetap)}</td><td class="r">${num(g.tukin)}</td><td class="r">${num(g.bpjs)}</td><td class="r">${num(g.total_bulan)}</td><td class="r">${num(g.biaya_tahun)}</td></tr>`).join('') || '<tr><td colspan="7" class="mut">Belum ada penetapan pada periode ini.</td></tr>'}
+  <tr class="tot"><td>Total</td><td class="c">${t.n}</td><td class="r">${num(t.upah_tetap)}</td><td class="r">${num(t.tukin)}</td><td class="r">${num(t.bpjs)}</td><td class="r">${num(t.total_bulan)}</td><td class="r">${num(t.biaya_tahun)}</td></tr></table></div>
+  <div class="grid2"><div class="card"><h3>Posisi upah saat ini terhadap skala</h3><p>Di bawah range: <b class="pos-bawah">${l.posisi['Di bawah range'] || 0}</b><br>Dalam range: <b class="pos-dalam">${l.posisi['Dalam range'] || 0}</b><br>Di atas range: <b class="pos-atas">${l.posisi['Di atas range'] || 0}</b><br>Belum diisi: ${l.posisi['Belum diisi'] || 0}</p>
+  <p>Kebutuhan penyesuaian ke batas bawah: <b>${rp(l.kebutuhan_penyesuaian_tahun)}</b> per tahun (13 bulan).</p></div>
+  <div class="card"><h3>Uji kemampuan keuangan</h3>${l.uji ? `<p>Biaya SDM RS setahun: ${rp(l.uji.biaya_sdm)}<br>Porsi biaya manajer: <b>${pct(l.uji.porsi)}</b> (batas ${pct(l.uji.batas)})<br>Status: <b class="${l.uji.status === 'Dalam batas' ? 'pos-dalam' : 'pos-bawah'}">${esc(l.uji.status)}</b></p>` : '<p class="mut">Belum aktif. Isi "Total biaya SDM RS setahun" di Pengaturan (peran Keuangan).</p>'}</div></div>`;
+}
+
+/* ---- Import & Integrasi */
+function parseLines(txt, n) {
+  return txt.split(/\r?\n/).map(l => l.trim()).filter(l => l && !/^nip/i.test(l)).map(l => l.split(/[;\t,]/).map(s => s.trim())).filter(a => a.length >= n);
+}
+PAGES.import = async () => {
+  const key = S.boot.cfg.api_key;
+  $('#main').innerHTML = `<h2>Import & Integrasi</h2>
+  <div class="grid2"><div class="card"><h3>Import skor KPI</h3><p class="mut">Satu baris per manajer: <code>nip;periode;skor</code>. Contoh: <code>1002;2026-09;92</code>. Pemisah ; , atau tab. Skor persen atau pecahan.</p>
+  <textarea id="ik" rows="7" placeholder="1002;2026-09;92"></textarea><br><br><button class="btn" onclick="impKpi()">Import KPI</button><div id="ikr"></div></div>
+  <div class="card"><h3>Import jadwal jam kerja</h3><p class="mut">Format: <code>nip;berlaku_mulai;sen;sel;rab;kam;jum;sab;min</code>. Contoh: <code>1002;2026-11-01;7;7;4;7;4;0;0</code>.</p>
+  <textarea id="ij" rows="7" placeholder="1002;2026-11-01;7;7;4;7;4;0;0"></textarea><br><br><button class="btn" onclick="impJam()">Import jadwal</button><div id="ijr"></div></div></div>
+  <div class="card"><h3>Integrasi dengan sistem lain (SIMKIN-RS, SIABSEN-DOKTER, SIKEU-RS)</h3>
+  <p>Sistem lain mengirim/mengambil data lewat API dengan kunci API. Kunci diperlakukan seperti kata sandi: jangan ditempel di halaman yang bisa dilihat publik.</p>
+  ${key !== undefined ? `<p>Kunci API: <code id="ak">${'*'.repeat(12)}</code> <button class="btn sm ghost" onclick="akTampil('${esc(key)}')">Tampilkan</button> ${can() ? '<button class="btn sm warn" onclick="akGanti()">Buat kunci baru</button>' : ''}</p>` : '<p class="mut">Kunci API hanya terlihat oleh SuperAdmin.</p>'}
+  <p><b>Endpoint:</b> <code>${esc(API_URL)}</code> (POST, isi JSON)</p>
+  <pre>// 1. Kirim skor KPI dari SIMKIN-RS / SIKENDALI
+{"action":"ext_pushKpi","data":{"api_key":"KUNCI","sumber":"SIMKIN-RS","rows":[{"nip":"1002","periode":"2026-10","skor":92}]}}
+
+// 2. Kirim jam kerja aktual dari SIABSEN-DOKTER
+{"action":"ext_pushJam","data":{"api_key":"KUNCI","rows":[{"nip":"1002","berlaku_mulai":"2026-11-01","sen":7,"sel":7,"rab":4,"kam":7,"jum":4,"sab":0,"min":0}]}}
+
+// 3. Ambil biaya manajer per golongan untuk SIKEU-RS / SIAK-RS (data teragregasi, tanpa nama)
+{"action":"ext_getBiaya","data":{"api_key":"KUNCI","periode":"2026-10"}}</pre>
+  <p><b>Contoh pemanggilan dari Apps Script sistem lain:</b></p>
+  <pre>const r = UrlFetchApp.fetch(SISKALA_URL, {method:'post', contentType:'application/json',
+  payload: JSON.stringify({action:'ext_getBiaya', data:{api_key: SISKALA_KEY, periode:'2026-10'}})});
+const biaya = JSON.parse(r.getContentText()).data;</pre></div>`;
+};
+window.impKpi = () => run(async () => {
+  const rows = parseLines($('#ik').value, 3).map(a => ({ nip: a[0], periode: a[1], skor: a[2] })); if (!rows.length) throw new Error('Tidak ada baris valid');
+  const r = await api('importKpi', { rows }); $('#ikr').innerHTML = `<p><b class="pos-dalam">${r.berhasil} berhasil</b>${r.gagal.length ? `, <b class="pos-bawah">${r.gagal.length} gagal</b></p><pre>${esc(r.gagal.join('\n'))}</pre>` : '</p>'}`; await reload();
+});
+window.impJam = () => run(async () => {
+  const rows = parseLines($('#ij').value, 9).map(a => ({ nip: a[0], berlaku_mulai: a[1], sen: a[2], sel: a[3], rab: a[4], kam: a[5], jum: a[6], sab: a[7], min: a[8] })); if (!rows.length) throw new Error('Tidak ada baris valid (butuh 9 kolom)');
+  const r = await api('importJam', { rows }); $('#ijr').innerHTML = `<p><b class="pos-dalam">${r.berhasil} berhasil</b>${r.gagal.length ? `, <b class="pos-bawah">${r.gagal.length} gagal</b></p><pre>${esc(r.gagal.join('\n'))}</pre>` : '</p>'}`; await reload();
+});
+window.akTampil = k => { $('#ak').textContent = k; };
+window.akGanti = () => run(async () => {
+  if (!confirm('Kunci lama langsung tidak berlaku. Semua sistem yang memakai kunci lama harus diperbarui. Lanjut?')) return;
+  await api('regenKey'); await reload(); toast('Kunci baru dibuat', 'ok'); PAGES.import();
+});
+
+/* ---- Pengaturan */
+const GROUPS = [
+  ['Umum & jangkar skala', ['nama_rs', 'umk', 'mid_bawah', 'mid_atas', 'pembulatan']],
+  ['Komponen upah', ['porsi_gapok', 'tukin_max']],
+  ['Jam kerja', ['jam_standar', 'jam_min', 'porsi_tunj_prop']],
+  ['Penempatan step', ['poin_pend_d3', 'poin_pend_s1', 'poin_pend_s2', 'poin_pend_s3', 'thn_per_poin', 'max_poin_masa', 'max_poin_sertif', 'ambang_kpi']],
+  ['BPJS pemberi kerja', ['bpjs_kes_pk', 'bpjs_kes_cap', 'jht_pk', 'jp_pk', 'jp_cap', 'jkk', 'jkm']],
+  ['Persetujuan & keuangan', ['alur_approval', 'biaya_sdm_tahunan', 'batas_porsi_manajer']]
+];
+const SET_LABEL = {
+  nama_rs: 'Nama RS (dokumen cetak)', umk: 'UMK Brebes 2026 (Rp/bulan)', mid_bawah: 'Midpoint golongan terendah (Rp)', mid_atas: 'Midpoint golongan tertinggi (Rp)', pembulatan: 'Pembulatan upah (Rp)',
+  porsi_gapok: 'Porsi minimum gaji pokok (pecahan, 0.75 = 75%)', tukin_max: 'Tukin maksimum (pecahan dari upah tetap)', jam_standar: 'Jam kerja standar per minggu (jam penuh)', jam_min: 'Jam minimum per minggu untuk jabatan manajer',
+  porsi_tunj_prop: 'Porsi tunjangan jabatan ikut proporsional jam (1 = ikut, 0 = penuh)', poin_pend_d3: 'Poin step: D3', poin_pend_s1: 'Poin step: S1/Profesi', poin_pend_s2: 'Poin step: S2/Spesialis', poin_pend_s3: 'Poin step: S3',
+  thn_per_poin: 'Tahun masa kerja manajerial per 1 poin', max_poin_masa: 'Maksimum poin masa kerja', max_poin_sertif: 'Maksimum poin sertifikasi', ambang_kpi: 'Ambang KPI untuk +1 poin (pecahan)',
+  bpjs_kes_pk: 'BPJS Kesehatan pemberi kerja', bpjs_kes_cap: 'Batas upah BPJS Kesehatan (Rp)', jht_pk: 'JHT pemberi kerja', jp_pk: 'JP pemberi kerja', jp_cap: 'Batas upah JP (Rp) - verifikasi nilai berlaku', jkk: 'JKK sesuai kelas risiko RS - sesuaikan', jkm: 'JKM',
+  alur_approval: 'Alur persetujuan (pisah koma: HRD, Keuangan, Wadir, Direktur)', biaya_sdm_tahunan: 'Total biaya SDM RS setahun (Rp), 0 = belum diisi', batas_porsi_manajer: 'Batas porsi biaya manajer (pecahan)'
+};
+let GOLS = [];
+PAGES.setting = async () => {
+  const c = S.boot.cfg, F = S.boot.faktor, su = can();
+  GOLS = S.boot.struktur.map(g => ({ kode: g.kode, poin_min: g.poin_min, spread: g.spread }));
+  $('#main').innerHTML = `<h2>Pengaturan</h2><div class="note">Semua angka di halaman ini mengubah seluruh skala dan penetapan berikutnya. Midpoint, bobot, dan ambang adalah asumsi awal; kalibrasi dengan kemampuan keuangan RS.</div>
+  <div class="card"><form id="sform">${GROUPS.map(g => `<h3 style="margin-top:12px">${esc(g[0])}</h3><div class="grid2">${g[1].map(k => `<label class="fld"><span>${esc(SET_LABEL[k] || k)}</span><input name="${k}" value="${esc(c[k])}" ${k === 'alur_approval' && !su ? 'disabled' : ''}></label>`).join('')}</div>`).join('')}
+  <button class="btn" type="submit">Simpan pengaturan</button></form></div>
+  <div class="card"><h3>Bobot faktor evaluasi jabatan</h3>${su ? '' : '<p class="mut">Hanya SuperAdmin.</p>'}<div class="wrap"><table><tr><th>Faktor</th><th>Bobot (%)</th></tr>${F.map(f => `<tr><td>${esc(f.nama)}</td><td><input class="fb" data-id="${f.id}" type="number" step="0.5" min="0" value="${Math.round(f.bobot * 1000) / 10}" ${su ? '' : 'disabled'} oninput="fbTotal()" style="width:100px"></td></tr>`).join('')}<tr class="tot"><td>Total (harus 100)</td><td id="fbt"></td></tr></table></div>${su ? '<button class="btn" onclick="fbSimpan()">Simpan bobot</button>' : ''}</div>
+  <div class="card"><h3>Golongan jabatan</h3>${su ? '' : '<p class="mut">Hanya SuperAdmin.</p>'}<div class="wrap"><table id="gtab"></table></div>${su ? '<button class="btn ghost" onclick="gAdd()">+ Golongan</button> <button class="btn" onclick="gSimpan()">Simpan golongan</button>' : ''}</div>`;
+  fbTotal(); gRender();
+  $('#sform').onsubmit = ev => {
+    ev.preventDefault(); const o = {}; new FormData(ev.target).forEach((v, k) => { o[k] = v; }); if (!su) delete o.alur_approval;
+    run(async () => { await api('saveSetting', { values: o }); await reload(); toast('Pengaturan tersimpan', 'ok'); PAGES.setting(); });
+  };
+};
+window.fbTotal = () => { let t = 0; document.querySelectorAll('.fb').forEach(i => { t += Number(i.value || 0); }); const e = $('#fbt'); e.innerHTML = `<b class="${Math.abs(t - 100) < 0.01 ? 'pos-dalam' : 'pos-bawah'}">${t.toFixed(1)}</b>`; };
+window.fbSimpan = () => run(async () => {
+  const rows = Array.from(document.querySelectorAll('.fb')).map(i => ({ id: i.dataset.id, bobot: Number(i.value) / 100 }));
+  await api('saveFaktor', { rows }); await reload(); toast('Bobot tersimpan', 'ok'); PAGES.setting();
+});
+function gRender() {
+  const su = can();
+  $('#gtab').innerHTML = `<tr><th>Kode</th><th>Poin minimum</th><th>Spread (%)</th>${su ? '<th></th>' : ''}</tr>${GOLS.map((g, i) => `<tr><td><input value="${esc(g.kode)}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].kode=this.value" style="width:90px"></td><td><input type="number" value="${g.poin_min}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].poin_min=Number(this.value)" style="width:110px"></td><td><input type="number" step="1" value="${Math.round(g.spread * 100)}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].spread=Number(this.value)/100" style="width:100px"></td>${su ? `<td><button class="btn sm ghost" onclick="gDel(${i})">Hapus</button></td>` : ''}</tr>`).join('')}`;
+}
+window.gAdd = () => { GOLS.push({ kode: 'M' + (GOLS.length + 1), poin_min: 900, spread: 0.7 }); gRender(); };
+window.gDel = i => { GOLS.splice(i, 1); gRender(); };
+window.gSimpan = () => run(async () => { await api('saveGolongan', { rows: GOLS }); await reload(); toast('Golongan tersimpan', 'ok'); PAGES.setting(); });
+
+/* ---- Pengguna & audit */
+PAGES.pengguna = async () => {
+  const us = await api('listUsers'), au = await api('audit'); window._us = us;
+  $('#main').innerHTML = `<div class="row"><h2 style="margin:0;flex:1">Pengguna & Audit</h2><button class="btn" onclick="usForm()">+ Tambah pengguna</button></div>
+  <div class="wrap"><table><tr><th>Username</th><th>Nama</th><th>Peran</th><th>Tertaut ke manajer</th><th>Aktif</th><th></th></tr>
+  ${us.map((u, i) => `<tr><td>${esc(u.username)}</td><td>${esc(u.nama)}</td><td>${esc(u.role)}</td><td>${esc((S.boot.pegawai.filter(p => p.id === u.pegawai_id)[0] || {}).nama || '')}</td><td>${u.aktif}</td><td><button class="btn sm" onclick="usForm(${i})">Edit</button></td></tr>`).join('')}</table></div>
+  <h3>Audit (200 terakhir)</h3><div class="wrap"><table><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th></tr>${au.map(a => `<tr><td>${esc(a.waktu)}</td><td>${esc(a.user)}</td><td>${esc(a.aksi)}</td><td>${esc(a.detail)}</td></tr>`).join('')}</table></div>`;
+};
+window.usForm = u => {
+  u = typeof u === 'number' ? window._us[u] : (u || { role: 'HRD', aktif: 'Y' });
+  openForm(u.id ? 'Edit pengguna' : 'Tambah pengguna', [
+    { k: 'username', label: 'Username', req: true }, { k: 'nama', label: 'Nama', req: true },
+    { k: 'role', label: 'Peran', type: 'select', opts: ['HRD', 'Keuangan', 'Wadir', 'Direktur', 'Manajer', 'SuperAdmin'].map(r => [r, r]) },
+    { k: 'pegawai_id', label: 'Tautkan ke manajer (peran Manajer)', type: 'select', opts: [['', '-']].concat(S.boot.pegawai.map(p => [p.id, p.nama])) },
+    { k: 'pin', label: u.id ? 'PIN baru (kosongkan bila tidak diubah)' : 'PIN awal (6-12 digit)', type: 'password' },
+    { k: 'aktif', label: 'Aktif', type: 'select', opts: [['Y', 'Ya'], ['N', 'Tidak']] }
+  ], u, async o => { if (u.id) o.id = u.id; await api('saveUser', o); toast('Tersimpan', 'ok'); PAGES.pengguna(); });
+};
+
+/* ---- Akun manajer */
+PAGES.saya = async () => {
+  const d = await api('saya'), g = d.golongan;
+  $('#main').innerHTML = `<h2>Data Saya</h2><div class="card"><h3>${esc(d.nama)}</h3><p>${esc(d.jabatan)}${g ? ` - Golongan ${esc(g.kode)}` : ''}<br><small>NIP ${esc(d.nip)}</small></p>
+  ${g ? `<p>Rentang upah golongan (jam penuh): <b>${rp(g.min)}</b> sampai <b>${rp(g.max)}</b>, midpoint ${rp(g.mid)}.</p>` : ''}
+  ${d.jadwal ? `<p>Jadwal jam kerja berlaku ${esc(d.jadwal.berlaku_mulai)}: ${D.map((k, i) => DN[i] + ' ' + d.jadwal[k]).join(', ')}.</p>` : '<p class="mut">Jadwal jam kerja belum diisi.</p>'}</div>
+  <h3>Penetapan upah yang telah disetujui</h3><div class="wrap"><table><tr><th>Periode</th><th>Gol / Step</th><th class="c">Jam</th><th class="r">Gaji pokok</th><th class="r">Tunjangan jabatan</th><th class="r">Upah tetap</th><th>No SK</th><th></th></tr>
+  ${d.penetapan.map((r, i) => `<tr><td>${esc(r.periode)}</td><td>${esc(r.golongan)} / ${r.step}</td><td class="c">${r.jam_minggu}</td><td class="r">${num(r.gaji_pokok)}</td><td class="r">${num(r.tunj_jabatan)}</td><td class="r"><b>${num(r.upah_tetap)}</b></td><td>${esc(r.sk_no)}</td><td><button class="btn sm ghost" onclick="sayaCetak(${i})">Cetak</button></td></tr>`).join('') || '<tr><td colspan="8" class="mut">Belum ada penetapan yang disetujui.</td></tr>'}</table></div>`;
+  window._saya = d;
+};
+window.sayaCetak = i => {
+  const d = window._saya, r = d.penetapan[i], w = window.open('', '_blank'); if (!w) return toast('Pop-up diblokir browser', 'err');
+  w.document.write('<html><head><title>Pemberitahuan Upah</title></head><body>' + suratHtml(r, d.nama_rs, d.golongan) + '</body></html>');
+  w.document.close(); w.focus(); setTimeout(() => w.print(), 400);
+};
+
+/* ---------------------------------------------------------------- mulai */
+(async function init() {
+  if (S.token && S.user) { try { await start(); } catch (e) { logoutLocal(); toast(e.message, 'err'); } }
+  else showLogin();
+})();
+</script>
+</body>
+</html>
