@@ -69,6 +69,12 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 code,pre{background:#eef3f5;border-radius:6px;font-family:Consolas,monospace;font-size:12px}
 pre{padding:10px;overflow:auto;white-space:pre-wrap;word-break:break-all}
 td select{min-width:54px;padding:4px}
+.wrap table.stk th:first-child,.wrap table.stk td:first-child{position:sticky;left:0;z-index:2;box-shadow:2px 0 0 var(--line)}
+.wrap table.stk td:first-child{background:#fff}
+.wrap table.stk th:first-child{z-index:3}
+#jtab th{white-space:normal;min-width:84px;line-height:1.25}
+#jtab td:first-child{min-width:190px}
+
 @media print{.side,.top,.noprint,#toast{display:none!important}.main{margin:0;padding:0}body{background:#fff}.card{border:0}}
 </style>
 </head>
@@ -249,11 +255,11 @@ PAGES.struktur = async () => {
   const jabPer = k => jabAktif().filter(j => j.golongan === k).map(j => esc(j.nama)).join('<br>') || '-';
   $('#main').innerHTML = `<div class="row noprint"><h2 style="margin:0;flex:1">Struktur & Skala Upah Manajer</h2><button class="btn ghost" onclick="window.print()">Cetak</button></div>
   <p class="mut">Upah Tetap per bulan untuk jam kerja penuh (${c.jam_standar} jam/minggu). Acuan UMK Brebes 2026: ${rp(c.umk)}. Upah dibayar = nilai skala x faktor jam kerja.</p>
-  <h3>Rentang upah per golongan</h3><div class="wrap"><table><tr><th>Golongan</th><th class="c">Poin</th><th class="c">Spread</th><th class="r">Terkecil</th><th class="r">Midpoint</th><th class="r">Terbesar</th><th class="c">x UMK</th><th class="c">Naik midpoint</th><th class="c">Tumpang tindih</th><th>Jabatan</th></tr>
+  <h3>Rentang upah per golongan</h3><div class="wrap"><table class="stk"><tr><th>Golongan</th><th class="c">Poin</th><th class="c">Spread</th><th class="r">Terkecil</th><th class="r">Midpoint</th><th class="r">Terbesar</th><th class="c">x UMK</th><th class="c">Naik midpoint</th><th class="c">Tumpang tindih</th><th>Jabatan</th></tr>
   ${B.struktur.map(g => `<tr><td><b>${esc(g.kode)}</b></td><td class="c">${g.poin_min}-${g.poin_max}</td><td class="c">${pct(g.spread, 0)}</td><td class="r">${num(g.min)}</td><td class="r"><b>${num(g.mid)}</b></td><td class="r">${num(g.max)}</td><td class="c">${g.rasio_umk.min.toFixed(2)} - ${g.rasio_umk.max.toFixed(2)}</td><td class="c">${g.kenaikan_mid ? pct(g.kenaikan_mid) : '-'}</td><td class="c">${g.kenaikan_mid ? pct(g.tumpang_tindih, 0) : '-'}</td><td>${jabPer(g.kode)}</td></tr>`).join('')}</table></div>
-  <h3>Skala 7 step (Upah Tetap, Rp per bulan, jam penuh)</h3><div class="wrap"><table><tr><th>Golongan</th>${[1, 2, 3, 4, 5, 6, 7].map(i => `<th class="r">Step ${i}</th>`).join('')}</tr>
+  <h3>Skala 7 step (Upah Tetap, Rp per bulan, jam penuh)</h3><div class="wrap"><table class="stk"><tr><th>Golongan</th>${[1, 2, 3, 4, 5, 6, 7].map(i => `<th class="r">Step ${i}</th>`).join('')}</tr>
   ${B.struktur.map(g => `<tr><td><b>${esc(g.kode)}</b></td>${g.steps.map(v => `<td class="r">${num(v)}</td>`).join('')}</tr>`).join('')}</table></div>
-  <h3>Tarif per jam (Rp)</h3><div class="wrap"><table><tr><th>Golongan</th><th class="r">Terkecil</th><th class="r">Midpoint</th><th class="r">Terbesar</th></tr>
+  <h3>Tarif per jam (Rp)</h3><div class="wrap"><table class="stk"><tr><th>Golongan</th><th class="r">Terkecil</th><th class="r">Midpoint</th><th class="r">Terbesar</th></tr>
   ${B.struktur.map(g => `<tr><td><b>${esc(g.kode)}</b></td><td class="r">${num(g.jam.min)}</td><td class="r">${num(g.jam.mid)}</td><td class="r">${num(g.jam.max)}</td></tr>`).join('')}</table></div>
   <div class="info">Manajer berjadwal tidak penuh dibayar menurut faktor jam: total jam kerja per minggu dibagi ${c.jam_standar}. Jam tiap hari boleh berbeda. Golongan tetap ditentukan jabatan, bukan jam kerja.</div>`;
 };
@@ -265,7 +271,7 @@ function jabGol(p) { let k = S.boot.struktur[0].kode; S.boot.struktur.forEach(g 
 function jabRowHtml(j, i) {
   const ed = can('HRD');
   const sel = n => `<td class="c"><select ${ed ? '' : 'disabled'} onchange="jabChange(${i},${n},this.value)">${[1, 2, 3, 4, 5].map(v => `<option ${Number(j['f' + n]) === v ? 'selected' : ''}>${v}</option>`).join('')}</select></td>`;
-  return `<tr id="jr${i}"><td>${ed ? `<input value="${esc(j.nama)}" onchange="JAB[${i}].nama=this.value" style="min-width:210px">` : esc(j.nama)}<br>${ed ? `<input value="${esc(j.unit)}" placeholder="Unit" onchange="JAB[${i}].unit=this.value" style="width:110px">
+  return `<tr id="jr${i}"><td>${ed ? `<input value="${esc(j.nama)}" onchange="JAB[${i}].nama=this.value" style="width:100%;min-width:170px">` : esc(j.nama)}<br>${ed ? `<input value="${esc(j.unit)}" placeholder="Unit" onchange="JAB[${i}].unit=this.value" style="width:110px">
   <select onchange="JAB[${i}].jenis=this.value" style="width:auto"><option ${j.jenis === 'Non-medis' ? 'selected' : ''}>Non-medis</option><option ${j.jenis === 'Medis' ? 'selected' : ''}>Medis</option></select>` : `<small>${esc(j.unit)} - ${esc(j.jenis)}</small>`}</td>
   ${[1, 2, 3, 4, 5, 6, 7, 8].map(sel).join('')}<td class="c" id="jp${i}"><b>${jabPoin(j)}</b></td><td class="c" id="jg${i}"><b>${jabGol(jabPoin(j))}</b></td>
   <td class="c">${ed ? `<button class="btn sm" onclick="jabSave(${i})">Simpan</button>${j.id ? ` <button class="btn sm ghost" onclick="jabToggle(${i})">${j.aktif === 'N' ? 'Aktifkan' : 'Nonaktifkan'}</button>` : ''}` : (j.aktif === 'N' ? 'Nonaktif' : '')}</td></tr>`;
@@ -275,7 +281,7 @@ PAGES.jabatan = async () => {
   const F = S.boot.faktor;
   $('#main').innerHTML = `<h2>Evaluasi Jabatan (metode poin faktor)</h2>
   <p class="mut">Nilai tiap jabatan pada ${F.length} faktor (level 1 rendah sampai 5 sangat tinggi). Poin = jumlah (bobot x level) x 200, maksimum 1.000. Golongan terisi otomatis dari ambang poin. Skor adalah usulan awal; validasi dengan panel (Direktur, Wadir, HRD, Keuangan).</p>
-  <div class="wrap"><table id="jtab"><tr><th>Jabatan</th>${F.map(f => `<th class="c" title="${esc(f.deskripsi)}">${esc(f.nama)}<br>${pct(f.bobot, 0)}</th>`).join('')}<th class="c">Poin</th><th class="c">Gol.</th><th></th></tr>
+  <div class="wrap"><table id="jtab" class="stk"><tr><th>Jabatan</th>${F.map(f => `<th class="c" title="${esc(f.deskripsi)}">${esc(f.nama)}<br>${pct(f.bobot, 0)}</th>`).join('')}<th class="c">Poin</th><th class="c">Gol.</th><th></th></tr>
   ${JAB.map(jabRowHtml).join('')}</table></div>
   ${can('HRD') ? '<button class="btn" onclick="jabBaru()">+ Tambah jabatan</button>' : ''}`;
 };
@@ -297,7 +303,7 @@ window.jabBaru = () => {
 PAGES.manajer = async () => {
   const B = S.boot, ed = can('HRD');
   $('#main').innerHTML = `<div class="row"><h2 style="margin:0;flex:1">Manajer & Jadwal Jam Kerja</h2>${ed ? '<button class="btn" onclick="pgForm()">+ Tambah manajer</button>' : ''}</div>
-  <div class="wrap"><table><tr><th>Nama</th><th>NIP</th><th>Jabatan</th><th class="c">Gol.</th><th class="c">Pend.</th><th class="c">Mulai manajerial</th><th class="c">Sert.</th><th class="r">Upah saat ini</th><th class="c">Jam/minggu</th><th class="c">KPI</th><th>Status</th><th></th></tr>
+  <div class="wrap"><table class="stk"><tr><th>Nama</th><th>NIP</th><th>Jabatan</th><th class="c">Gol.</th><th class="c">Pend.</th><th class="c">Mulai manajerial</th><th class="c">Sert.</th><th class="r">Upah saat ini</th><th class="c">Jam/minggu</th><th class="c">KPI</th><th>Status</th><th></th></tr>
   ${B.pegawai.map(p => `<tr><td><b>${esc(p.nama)}</b></td><td>${esc(p.nip)}</td><td>${esc(p.jabatan_nama)}</td><td class="c">${esc(p.golongan)}</td><td class="c">${esc(p.pendidikan)}</td><td class="c">${esc(p.mulai_manajerial)}</td><td class="c">${p.sertifikasi}</td>
   <td class="r">${num(p.upah_saat_ini)}</td><td class="c">${p.jam_minggu == null ? '<span class="pos-bawah">belum</span>' : p.jam_minggu}</td><td class="c">${p.kpi_terakhir == null ? '<span class="pos-bawah">belum</span>' : pct(p.kpi_terakhir, 0) + '<br><small>' + esc(p.kpi_periode) + '</small>'}</td><td>${esc(p.status)}</td>
   <td>${ed ? `<button class="btn sm" onclick="pgForm('${p.id}')">Edit</button> <button class="btn sm ghost" onclick="jdForm('${p.id}')">Jadwal</button> <button class="btn sm ghost" onclick="kpiForm('${p.id}')">KPI</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="12" class="mut">Belum ada manajer.</td></tr>'}</table></div>
@@ -461,7 +467,7 @@ PAGES.laporan = async () => {
 async function lapMuat() {
   const l = await api('laporan', { periode: S.periode }), t = l.total;
   $('#lbody').innerHTML = `<p class="mut">Periode ${esc(l.periode)}. Mencakup draft, diajukan, dan disetujui (tanpa yang ditolak). Biaya setahun = 12 bulan + THR 1 bulan upah tetap.</p>
-  <div class="wrap"><table><tr><th>Golongan</th><th class="c">Jumlah</th><th class="r">Upah tetap/bln</th><th class="r">Tukin/bln</th><th class="r">BPJS/bln</th><th class="r">Total/bln</th><th class="r">Biaya setahun</th></tr>
+  <div class="wrap"><table class="stk"><tr><th>Golongan</th><th class="c">Jumlah</th><th class="r">Upah tetap/bln</th><th class="r">Tukin/bln</th><th class="r">BPJS/bln</th><th class="r">Total/bln</th><th class="r">Biaya setahun</th></tr>
   ${l.per_golongan.map(g => `<tr><td><b>${esc(g.golongan)}</b></td><td class="c">${g.n}</td><td class="r">${num(g.upah_tetap)}</td><td class="r">${num(g.tukin)}</td><td class="r">${num(g.bpjs)}</td><td class="r">${num(g.total_bulan)}</td><td class="r">${num(g.biaya_tahun)}</td></tr>`).join('') || '<tr><td colspan="7" class="mut">Belum ada penetapan pada periode ini.</td></tr>'}
   <tr class="tot"><td>Total</td><td class="c">${t.n}</td><td class="r">${num(t.upah_tetap)}</td><td class="r">${num(t.tukin)}</td><td class="r">${num(t.bpjs)}</td><td class="r">${num(t.total_bulan)}</td><td class="r">${num(t.biaya_tahun)}</td></tr></table></div>
   <div class="grid2"><div class="card"><h3>Posisi upah saat ini terhadap skala</h3><p>Di bawah range: <b class="pos-bawah">${l.posisi['Di bawah range'] || 0}</b><br>Dalam range: <b class="pos-dalam">${l.posisi['Dalam range'] || 0}</b><br>Di atas range: <b class="pos-atas">${l.posisi['Di atas range'] || 0}</b><br>Belum diisi: ${l.posisi['Belum diisi'] || 0}</p>
