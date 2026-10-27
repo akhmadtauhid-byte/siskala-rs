@@ -367,6 +367,8 @@ function hasilHtml(h) {
     kal = `<div class="${h.selisih_skala >= 0 ? 'info' : 'note'}">Total penghasilan saat ini ${rp(h.total_saat_ini)}. Skala menghasilkan ${rp(tot0)}, selisih <b>${h.selisih_skala >= 0 ? '+' : ''}${rp(h.selisih_skala)}</b>${h.tunj_penyesuaian > 0 ? `, ditutup tunjangan penyesuaian ${rp(h.tunj_penyesuaian)} agar tidak turun` : ''}.`
       + (pf ? (pf.basis === 'BULAN' ? ` Tunjangan profesi yang pas dengan angka saat ini: <b>${rp(h.total_saat_ini - h.upah_tetap - h.tukin)}</b> per bulan; hasil skala: <b>${rp(h.tunj_profesi)}</b>.` : ` Tarif jam profesi yang pas dengan angka saat ini: <b>${rp((h.total_saat_ini - h.upah_tetap - h.tukin) / pf.jam_bulan)}</b> per jam; tarif skala: <b>${rp(pf.tarif_jam)}</b>.`) : '') + '</div>';
   }
+  const T = h.total_remunerasi, pc = v => T > 0 ? (Math.round(v / T * 1000) / 10).toLocaleString('id-ID') + '%' : '-';
+  const komp = `<p class="mut">Komposisi total penghasilan: gaji pokok ${pc(h.gaji_pokok)}, tunjangan manajer ${pc(h.tunj_jabatan)}, tunjangan profesi ${pc(h.tunj_profesi)}, tukin ${pc(h.tukin)}, penyesuaian ${pc(h.tunj_penyesuaian)}.</p>`;
   return `<div class="cards">
   <div class="card"><div class="statl">Golongan / Step</div><div class="stat">${esc(h.golongan)} / Step ${h.step}</div><small>${esc(h.jabatan)} (${h.poin_jabatan} poin)</small></div>
   <div class="card"><div class="statl">Faktor jam kerja</div><div class="stat">${h.faktor_jam.toFixed(3)}</div><small>${h.jam_minggu} jam/minggu. ${esc(h.cek_jam)}</small></div>
@@ -376,12 +378,13 @@ function hasilHtml(h) {
   <tr><td>Gaji pokok</td><td class="r">${num(h.gapok_fte)}</td><td class="r">${num(h.gaji_pokok)}</td></tr>
   <tr><td>Tunjangan jabatan</td><td class="r">${num(h.tunj_fte)}</td><td class="r">${num(h.tunj_jabatan)}</td></tr>
   <tr class="tot"><td>Lapis 1: Upah manajerial (tetap)</td><td class="r">${num(h.upah_fte)}</td><td class="r">${num(h.upah_tetap)}</td></tr>
-  <tr><td>Tunjangan kinerja (maks ${num(h.tukin_max)})</td><td class="r"></td><td class="r">${num(h.tukin)}</td></tr>
+  <tr><td>Tunjangan kinerja<br><small>maks ${num(h.tukin_max)} (${Math.round(h.tukin_pct * 1000) / 10}% upah manajerial) x faktor KPI ${Math.round(h.faktor_kpi * 100)}%</small></td><td class="r"></td><td class="r">${num(h.tukin)}</td></tr>
   ${pf ? `<tr class="tot"><td>Lapis 2: Tunjangan profesi dokter<br><small>${pf.basis === 'BULAN' ? esc(pf.nama) + ', step ' + pf.step + ': ' + rp(pf.tarif_jam) + ' per bulan x faktor jam ' + h.faktor_jam.toFixed(3) : esc(pf.nama) + ', step ' + pf.step + ': ' + rp(pf.tarif_jam) + '/jam x ' + pf.jam_bulan.toFixed(1) + ' jam/bulan (' + pf.jam_minggu + ' jam/minggu)'}</small></td><td class="r"></td><td class="r">${num(h.tunj_profesi)}</td></tr>` : ''}
   ${h.tunj_penyesuaian > 0 ? `<tr class="tot"><td>Lapis 3: Tunjangan penyesuaian (perlindungan transisi)</td><td class="r"></td><td class="r">${num(h.tunj_penyesuaian)}</td></tr>` : ''}
   <tr class="tot"><td>Total penghasilan</td><td class="r"></td><td class="r">${num(h.total_remunerasi)}</td></tr>
   <tr><td>BPJS pemberi kerja: Kesehatan ${num(h.bpjs.kes)}, JHT ${num(h.bpjs.jht)}, JP ${num(h.bpjs.jp)}, JKK ${num(h.bpjs.jkk)}, JKM ${num(h.bpjs.jkm)}</td><td class="r"></td><td class="r">${num(h.bpjs.total)}</td></tr>
   <tr class="tot"><td>Total biaya RS per bulan</td><td class="r"></td><td class="r">${num(h.total_bulan)}</td></tr></table></div>
+  ${komp}
   <p class="mut">Tarif per jam golongan manajerial: ${rp(h.tarif_jam)}. Compa-ratio terhadap midpoint: ${h.compa.toFixed(2)}. Rentang golongan disesuaikan jam: ${rp(h.range_jam.min)} - ${rp(h.range_jam.max)}. Poin step: ${h.poin_step.manual ? 'manual' : `pendidikan ${h.poin_step.pend}, masa kerja ${h.poin_step.masa}, sertifikasi ${h.poin_step.sert}, kinerja ${h.poin_step.kin}`}.</p>`;
 }
 PAGES.kalk = async () => {
@@ -561,7 +564,8 @@ window.akGanti = () => run(async () => {
 /* ---- Pengaturan */
 const GROUPS = [
   ['Umum & jangkar skala', ['nama_rs', 'umk', 'mid_bawah', 'mid_atas', 'pembulatan']],
-  ['Komponen upah', ['porsi_gapok', 'tukin_max']],
+  ['Komponen upah', ['porsi_gapok']],
+  ['Tukin (tunjangan kinerja)', ['tukin_max', 'kpi_mode', 'kpi_tangga', 'tukin_ikut_jam']],
   ['Jam kerja', ['jam_standar', 'jam_min', 'porsi_tunj_prop']],
   ['Penempatan step', ['poin_pend_d3', 'poin_pend_s1', 'poin_pend_s2', 'poin_pend_s3', 'thn_per_poin', 'max_poin_masa', 'max_poin_sertif', 'ambang_kpi']],
   ['Profesi dokter & transisi', ['thn_per_step_profesi', 'pembulatan_jam', 'maks_jam_profesi_minggu', 'penyesuaian_aktif', 'bpjs_dasar_profesi']],
@@ -570,7 +574,7 @@ const GROUPS = [
 ];
 const SET_LABEL = {
   nama_rs: 'Nama RS (dokumen cetak)', umk: 'UMK Brebes 2026 (Rp/bulan)', mid_bawah: 'Midpoint golongan terendah (Rp)', mid_atas: 'Midpoint golongan tertinggi (Rp)', pembulatan: 'Pembulatan upah (Rp)',
-  porsi_gapok: 'Porsi minimum gaji pokok (pecahan, 0.75 = 75%)', tukin_max: 'Tukin maksimum (pecahan dari upah tetap)', jam_standar: 'Jam kerja standar per minggu (jam penuh)', jam_min: 'Jam minimum per minggu untuk jabatan manajer',
+  porsi_gapok: 'Porsi minimum gaji pokok (pecahan, 0.75 = 75%)', tukin_max: 'Tukin maksimum bawaan (pecahan dari upah manajerial jam penuh, 0.15 = 15%); bisa diganti per golongan di tabel Golongan jabatan', kpi_mode: 'Cara KPI menjadi tukin', kpi_tangga: 'Tangga KPI: ambang KPI (%) = persen tukin, pisah titik koma. Contoh 70=50;85=100 artinya KPI di bawah 70 = 0, 70-84 = 50%, 85 ke atas = 100%', tukin_ikut_jam: 'Tukin ikut dikurangi faktor jam kerja (1 = ya, 0 = dibayar penuh)', jam_standar: 'Jam kerja standar per minggu (jam penuh)', jam_min: 'Jam minimum per minggu untuk jabatan manajer',
   porsi_tunj_prop: 'Porsi tunjangan jabatan ikut proporsional jam (1 = ikut, 0 = penuh)', poin_pend_d3: 'Poin step: D3', poin_pend_s1: 'Poin step: S1/Profesi', poin_pend_s2: 'Poin step: S2/Spesialis', poin_pend_s3: 'Poin step: S3',
   thn_per_poin: 'Tahun masa kerja manajerial per 1 poin', max_poin_masa: 'Maksimum poin masa kerja', max_poin_sertif: 'Maksimum poin sertifikasi', ambang_kpi: 'Ambang KPI untuk +1 poin (pecahan)',
   thn_per_step_profesi: 'Tahun lama praktik dokter per 1 step tarif profesi', pembulatan_jam: 'Pembulatan tarif per jam dan tunjangan profesi (Rp)', maks_jam_profesi_minggu: 'Batas jam profesi dibayar per minggu (0 = tanpa batas)',
@@ -581,10 +585,10 @@ const SET_LABEL = {
 let GOLS = [], PROF = [];
 PAGES.setting = async () => {
   const c = S.boot.cfg, F = S.boot.faktor, su = can();
-  GOLS = S.boot.struktur.map(g => ({ kode: g.kode, poin_min: g.poin_min, spread: g.spread }));
+  GOLS = S.boot.struktur.map(g => ({ kode: g.kode, poin_min: g.poin_min, spread: g.spread, tukin_max: g.tukin_khusus ? g.tukin_pct : '' }));
   PROF = (S.boot.profesi || []).map(p => ({ kode: p.kode, nama: p.nama, tarif_min: p.tarif_min, tarif_max: p.tarif_max, basis: p.basis || 'JAM', manual: !!p.manual, steps: (p.steps || []).slice() }));
   $('#main').innerHTML = `<h2>Pengaturan</h2><div class="note">Semua angka di halaman ini mengubah seluruh skala dan penetapan berikutnya. Midpoint, bobot, ambang, dan tarif profesi adalah asumsi awal; kalibrasi dengan kemampuan keuangan RS.</div>
-  <div class="card"><form id="sform">${GROUPS.map(g => `<h3 style="margin-top:12px">${esc(g[0])}</h3><div class="grid2">${g[1].map(k => `<label class="fld"><span>${esc(SET_LABEL[k] || k)}</span><input name="${k}" value="${esc(c[k])}" ${k === 'alur_approval' && !su ? 'disabled' : ''}></label>`).join('')}</div>`).join('')}
+  <div class="card"><form id="sform">${GROUPS.map(g => `<h3 style="margin-top:12px">${esc(g[0])}</h3><div class="grid2">${g[1].map(k => `<label class="fld"><span>${esc(SET_LABEL[k] || k)}</span>${k === 'kpi_mode' ? `<select name="${k}"><option value="BERUNDAK" ${String(c[k]).toUpperCase() !== 'LINEAR' ? 'selected' : ''}>Berundak per ambang</option><option value="LINEAR" ${String(c[k]).toUpperCase() === 'LINEAR' ? 'selected' : ''}>Linear (KPI langsung jadi persen tukin)</option></select>` : `<input name="${k}" value="${esc(c[k])}" ${k === 'alur_approval' && !su ? 'disabled' : ''}>`}</label>`).join('')}</div>`).join('')}
   <button class="btn" type="submit">Simpan pengaturan</button></form></div>
   <div class="card"><h3>Skala profesi dokter</h3><p class="mut">Tiap kualifikasi punya nilai terkecil (step 1) sampai terbesar (step 7); step naik tiap ${esc(c.thn_per_step_profesi)} tahun lama praktik. Basis <b>Per jam</b>: nilai dikali jam layanan. Basis <b>Tetap per bulan</b>: nilai tetap menurut kualifikasi dan lama praktik, dikali faktor jam kerja (jam per minggu dibagi ${esc(c.jam_standar)}). Nilai bawaan hanyalah asumsi awal (Dokter Umum Rp60.000/jam dari slip; lainnya perkiraan). Isi sesuai kebijakan RS.</p><div class="wrap"><table id="ptab"></table></div><button class="btn ghost" onclick="pAdd()">+ Kualifikasi</button> <button class="btn" onclick="pSimpan()">Simpan skala profesi</button></div>
   <div class="card"><h3>Bobot faktor evaluasi jabatan</h3>${su ? '' : '<p class="mut">Hanya SuperAdmin.</p>'}<div class="wrap"><table><tr><th>Faktor</th><th>Bobot (%)</th></tr>${F.map(f => `<tr><td>${esc(f.nama)}</td><td><input class="fb" data-id="${f.id}" type="number" step="0.5" min="0" value="${Math.round(f.bobot * 1000) / 10}" ${su ? '' : 'disabled'} oninput="fbTotal()" style="width:100px"></td></tr>`).join('')}<tr class="tot"><td>Total (harus 100)</td><td id="fbt"></td></tr></table></div>${su ? '<button class="btn" onclick="fbSimpan()">Simpan bobot</button>' : ''}</div>
@@ -602,9 +606,9 @@ window.fbSimpan = () => run(async () => {
 });
 function gRender() {
   const su = can();
-  $('#gtab').innerHTML = `<tr><th>Kode</th><th>Poin minimum</th><th>Spread (%)</th>${su ? '<th></th>' : ''}</tr>${GOLS.map((g, i) => `<tr><td><input value="${esc(g.kode)}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].kode=this.value" style="width:90px"></td><td><input type="number" value="${g.poin_min}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].poin_min=Number(this.value)" style="width:110px"></td><td><input type="number" step="1" value="${Math.round(g.spread * 100)}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].spread=Number(this.value)/100" style="width:100px"></td>${su ? `<td><button class="btn sm ghost" onclick="gDel(${i})">Hapus</button></td>` : ''}</tr>`).join('')}`;
+  $('#gtab').innerHTML = `<tr><th>Kode</th><th>Poin minimum</th><th>Spread (%)</th><th>Tukin maks (%), kosong = bawaan</th>${su ? '<th></th>' : ''}</tr>${GOLS.map((g, i) => `<tr><td><input value="${esc(g.kode)}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].kode=this.value" style="width:90px"></td><td><input type="number" value="${g.poin_min}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].poin_min=Number(this.value)" style="width:110px"></td><td><input type="number" step="1" value="${Math.round(g.spread * 100)}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].spread=Number(this.value)/100" style="width:100px"></td><td><input type="number" step="1" min="0" max="100" placeholder="${Math.round(S.boot.cfg.tukin_max * 100)}" value="${g.tukin_max === '' ? '' : Math.round(g.tukin_max * 1000) / 10}" ${su ? '' : 'disabled'} onchange="GOLS[${i}].tukin_max=this.value===''?'':Number(this.value)/100" style="width:110px"></td>${su ? `<td><button class="btn sm ghost" onclick="gDel(${i})">Hapus</button></td>` : ''}</tr>`).join('')}`;
 }
-window.gAdd = () => { GOLS.push({ kode: 'M' + (GOLS.length + 1), poin_min: 900, spread: 0.7 }); gRender(); };
+window.gAdd = () => { GOLS.push({ kode: 'M' + (GOLS.length + 1), poin_min: 900, spread: 0.7, tukin_max: '' }); gRender(); };
 window.gDel = i => { GOLS.splice(i, 1); gRender(); };
 window.gSimpan = () => run(async () => { await api('saveGolongan', { rows: GOLS }); await reload(); toast('Golongan tersimpan', 'ok'); PAGES.setting(); });
 function pRender() {
