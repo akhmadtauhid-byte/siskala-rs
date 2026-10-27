@@ -582,7 +582,7 @@ let GOLS = [], PROF = [];
 PAGES.setting = async () => {
   const c = S.boot.cfg, F = S.boot.faktor, su = can();
   GOLS = S.boot.struktur.map(g => ({ kode: g.kode, poin_min: g.poin_min, spread: g.spread }));
-  PROF = (S.boot.profesi || []).map(p => ({ kode: p.kode, nama: p.nama, tarif_min: p.tarif_min, tarif_max: p.tarif_max, basis: p.basis || 'JAM' }));
+  PROF = (S.boot.profesi || []).map(p => ({ kode: p.kode, nama: p.nama, tarif_min: p.tarif_min, tarif_max: p.tarif_max, basis: p.basis || 'JAM', manual: !!p.manual, steps: (p.steps || []).slice() }));
   $('#main').innerHTML = `<h2>Pengaturan</h2><div class="note">Semua angka di halaman ini mengubah seluruh skala dan penetapan berikutnya. Midpoint, bobot, ambang, dan tarif profesi adalah asumsi awal; kalibrasi dengan kemampuan keuangan RS.</div>
   <div class="card"><form id="sform">${GROUPS.map(g => `<h3 style="margin-top:12px">${esc(g[0])}</h3><div class="grid2">${g[1].map(k => `<label class="fld"><span>${esc(SET_LABEL[k] || k)}</span><input name="${k}" value="${esc(c[k])}" ${k === 'alur_approval' && !su ? 'disabled' : ''}></label>`).join('')}</div>`).join('')}
   <button class="btn" type="submit">Simpan pengaturan</button></form></div>
@@ -608,11 +608,18 @@ window.gAdd = () => { GOLS.push({ kode: 'M' + (GOLS.length + 1), poin_min: 900, 
 window.gDel = i => { GOLS.splice(i, 1); gRender(); };
 window.gSimpan = () => run(async () => { await api('saveGolongan', { rows: GOLS }); await reload(); toast('Golongan tersimpan', 'ok'); PAGES.setting(); });
 function pRender() {
-  $('#ptab').innerHTML = `<tr><th>Kode</th><th>Kualifikasi</th><th>Basis</th><th>Nilai terkecil (Rp)</th><th>Nilai terbesar (Rp)</th><th></th></tr>${PROF.map((p, i) => `<tr><td><input value="${esc(p.kode)}" onchange="PROF[${i}].kode=this.value" style="width:80px"></td><td><input value="${esc(p.nama)}" onchange="PROF[${i}].nama=this.value" style="min-width:180px"></td><td><select onchange="PROF[${i}].basis=this.value"><option value="JAM" ${p.basis !== 'BULAN' ? 'selected' : ''}>Per jam</option><option value="BULAN" ${p.basis === 'BULAN' ? 'selected' : ''}>Tetap per bulan</option></select></td><td><input type="number" step="1000" value="${p.tarif_min}" onchange="PROF[${i}].tarif_min=Number(this.value)" style="width:140px"></td><td><input type="number" step="1000" value="${p.tarif_max}" onchange="PROF[${i}].tarif_max=Number(this.value)" style="width:140px"></td><td><button class="btn sm ghost" onclick="pDel(${i})">Hapus</button></td></tr>`).join('')}`;
+  $('#ptab').innerHTML = `<tr><th>Kode</th><th>Kualifikasi</th><th>Basis</th><th>Cara isi step</th><th>Nilai terkecil (Rp)</th><th>Nilai terbesar (Rp)</th><th></th></tr>${PROF.map((p, i) => `<tr><td><input value="${esc(p.kode)}" onchange="PROF[${i}].kode=this.value" style="width:80px"></td><td><input value="${esc(p.nama)}" onchange="PROF[${i}].nama=this.value" style="min-width:180px"></td><td><select onchange="PROF[${i}].basis=this.value"><option value="JAM" ${p.basis !== 'BULAN' ? 'selected' : ''}>Per jam</option><option value="BULAN" ${p.basis === 'BULAN' ? 'selected' : ''}>Tetap per bulan</option></select></td><td><select onchange="pMode(${i},this.value)"><option value="0" ${!p.manual ? 'selected' : ''}>Rentang otomatis</option><option value="1" ${p.manual ? 'selected' : ''}>Isi per step</option></select></td><td><input type="number" step="1000" value="${p.manual ? p.steps[0] : p.tarif_min}" ${p.manual ? 'disabled' : ''} onchange="PROF[${i}].tarif_min=Number(this.value)" style="width:140px"></td><td><input type="number" step="1000" value="${p.manual ? p.steps[6] : p.tarif_max}" ${p.manual ? 'disabled' : ''} onchange="PROF[${i}].tarif_max=Number(this.value)" style="width:140px"></td><td><button class="btn sm ghost" onclick="pDel(${i})">Hapus</button></td></tr>${p.manual ? `<tr><td colspan="7" style="background:#f4f7f9"><div class="row" style="gap:6px;flex-wrap:wrap;align-items:center"><b>Nilai tiap step (naik tiap lama praktik):</b>${[0, 1, 2, 3, 4, 5, 6].map(k => `<label class="fld" style="margin:0"><span>Step ${k + 1}</span><input type="number" step="1000" value="${p.steps[k]}" onchange="PROF[${i}].steps[${k}]=Number(this.value)" style="width:120px"></label>`).join('')}<label class="fld" style="margin:0"><span>Samakan semua</span><input type="number" step="1000" placeholder="mis. 60000" style="width:120px" onchange="pSama(${i},this.value)"></label></div></td></tr>` : ''}`).join('')}`;
 }
-window.pAdd = () => { PROF.push({ kode: 'DX', nama: 'Kualifikasi baru', basis: 'JAM', tarif_min: 50000, tarif_max: 70000 }); pRender(); };
+window.pMode = (i, v) => {
+  const p = PROF[i];
+  if (v === '1') { p.manual = true; const mn = Number(p.tarif_min), mx = Number(p.tarif_max); p.steps = [0, 1, 2, 3, 4, 5, 6].map(k => Math.round((mn + (mx - mn) * k / 6) / 1000) * 1000); }
+  else { p.manual = false; p.tarif_min = p.steps[0] || p.tarif_min; p.tarif_max = p.steps[6] || p.tarif_max; }
+  pRender();
+};
+window.pSama = (i, v) => { const n = Number(v); if (n > 0) { PROF[i].steps = [0, 1, 2, 3, 4, 5, 6].map(() => n); pRender(); } };
+window.pAdd = () => { PROF.push({ kode: 'DX', nama: 'Kualifikasi baru', basis: 'JAM', tarif_min: 50000, tarif_max: 70000, manual: false, steps: [] }); pRender(); };
 window.pDel = i => { PROF.splice(i, 1); pRender(); };
-window.pSimpan = () => run(async () => { await api('saveProfesi', { rows: PROF }); await reload(); toast('Skala profesi tersimpan', 'ok'); PAGES.setting(); });
+window.pSimpan = () => run(async () => { await api('saveProfesi', { rows: PROF.map(p => ({ kode: p.kode, nama: p.nama, basis: p.basis, tarif_min: p.tarif_min, tarif_max: p.tarif_max, step_manual: p.manual ? p.steps : [] })) }); await reload(); toast('Skala profesi tersimpan', 'ok'); PAGES.setting(); });
 
 /* ---- Pengguna & audit */
 PAGES.pengguna = async () => {
