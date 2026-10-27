@@ -259,6 +259,10 @@ PAGES.struktur = async () => {
   ${B.struktur.map(g => `<tr><td><b>${esc(g.kode)}</b></td><td class="c">${g.poin_min}-${g.poin_max}</td><td class="c">${pct(g.spread, 0)}</td><td class="r">${num(g.min)}</td><td class="r"><b>${num(g.mid)}</b></td><td class="r">${num(g.max)}</td><td class="c">${g.rasio_umk.min.toFixed(2)} - ${g.rasio_umk.max.toFixed(2)}</td><td class="c">${g.kenaikan_mid ? pct(g.kenaikan_mid) : '-'}</td><td class="c">${g.kenaikan_mid ? pct(g.tumpang_tindih, 0) : '-'}</td><td>${jabPer(g.kode)}</td></tr>`).join('')}</table></div>
   <h3>Skala 7 step (Upah Tetap, Rp per bulan, jam penuh)</h3><div class="wrap"><table class="stk"><tr><th>Golongan</th>${[1, 2, 3, 4, 5, 6, 7].map(i => `<th class="r">Step ${i}</th>`).join('')}</tr>
   ${B.struktur.map(g => `<tr><td><b>${esc(g.kode)}</b></td>${g.steps.map(v => `<td class="r">${num(v)}</td>`).join('')}</tr>`).join('')}</table></div>
+  <h3>Rincian skala: gaji pokok, tunjangan manajer, dan tukin maksimum (Rp per bulan, jam penuh)</h3>
+  <p class="mut">Gaji pokok minimal ${pct(c.porsi_gapok, 0)} dari upah manajerial (dasar iuran BPJS, THR, pesangon); sisanya tunjangan manajer. Tukin variabel, dibayar sesuai KPI hingga batas maksimum per golongan. Tunjangan profesi dokter ada di tabel skala profesi di bawah.</p>
+  <div class="wrap"><table class="stk"><tr><th>Golongan</th><th>Komponen</th>${[1, 2, 3, 4, 5, 6, 7].map(i => `<th class="r">Step ${i}</th>`).join('')}</tr>
+  ${B.struktur.map(g => { const gp = g.steps.map(v => Math.ceil(v * c.porsi_gapok / c.pembulatan - 1e-9) * c.pembulatan); return `<tr><td rowspan="4"><b>${esc(g.kode)}</b></td><td>Gaji pokok</td>${gp.map(v => `<td class="r">${num(v)}</td>`).join('')}</tr><tr><td>Tunjangan manajer</td>${g.steps.map((v, i) => `<td class="r">${num(v - gp[i])}</td>`).join('')}</tr><tr class="tot"><td>Upah manajerial</td>${g.steps.map(v => `<td class="r">${num(v)}</td>`).join('')}</tr><tr><td>Tukin maks (${Math.round(g.tukin_pct * 1000) / 10}%${g.tukin_khusus ? ', khusus golongan' : ''})</td>${g.steps.map(v => `<td class="r">${num(Math.round(v * g.tukin_pct / c.pembulatan_jam) * c.pembulatan_jam)}</td>`).join('')}</tr>`; }).join('')}</table></div>
   <h3>Tarif per jam (Rp)</h3><div class="wrap"><table class="stk"><tr><th>Golongan</th><th class="r">Terkecil</th><th class="r">Midpoint</th><th class="r">Terbesar</th></tr>
   ${B.struktur.map(g => `<tr><td><b>${esc(g.kode)}</b></td><td class="r">${num(g.jam.min)}</td><td class="r">${num(g.jam.mid)}</td><td class="r">${num(g.jam.max)}</td></tr>`).join('')}</table></div>
   <h3>Skala profesi dokter (Rp per jam atau tetap per bulan sesuai basis; step menurut lama praktik, ${c.thn_per_step_profesi} tahun per step)</h3><div class="wrap"><table class="stk"><tr><th>Kualifikasi</th>${[1, 2, 3, 4, 5, 6, 7].map(i => `<th class="r">Step ${i}</th>`).join('')}<th class="r">Setara per bulan (jam penuh, terkecil - terbesar)</th></tr>
@@ -468,6 +472,19 @@ window.penCsv = () => {
   const h = ['Periode', 'NIP', 'Nama', 'Jabatan', 'Golongan', 'Step', 'Jam/minggu', 'Faktor jam', 'Gaji pokok', 'Tunjangan jabatan', 'Upah manajerial', 'Profesi', 'Step profesi', 'Tarif jam profesi', 'Jam profesi/bulan', 'Tunjangan profesi', 'Tukin', 'Tunjangan penyesuaian', 'Total penghasilan', 'Total saat ini', 'Selisih skala vs saat ini', 'BPJS pemberi kerja', 'Biaya RS/bulan', 'Upah tetap saat ini', 'Posisi', 'Kekurangan ke batas bawah', 'Status', 'No SK'];
   csvDownload('penetapan-upah-' + S.periode + '.csv', [h].concat(PEN.map(r => [r.periode, r.nip, r.nama, r.jabatan, r.golongan, r.step, r.jam_minggu, r.faktor_jam, r.gaji_pokok, r.tunj_jabatan, r.upah_tetap, r.profesi, r.step_profesi, r.tarif_jam_profesi, r.jam_profesi_bulan, r.tunj_profesi, r.tukin, r.tunj_penyesuaian, r.total_remunerasi, r.total_saat_ini, r.selisih_skala, r.bpjs_pk, r.total_bulan, r.upah_saat_ini, r.posisi_saat_ini, r.kekurangan_ke_min, r.status, r.sk_no])));
 };
+function skalaSurat(r, g) {
+  const c = S.boot.cfg, st = Number(r.step), pf = (S.boot.profesi || []).filter(p => p.kode === r.profesi)[0], sp = Number(r.step_profesi);
+  const gp = g.steps.map(v => Math.ceil(v * c.porsi_gapok / c.pembulatan - 1e-9) * c.pembulatan);
+  const sel = (i, cur) => i + 1 === cur ? 'background:#e6eef5;font-weight:bold;' : '';
+  const th = n => [1, 2, 3, 4, 5, 6, 7].map(i => `<th style="${sel(i - 1, n)}">Step ${i}</th>`).join('');
+  const row = (lbl, arr, cur, b) => `<tr><td>${lbl}</td>${arr.map((v, i) => `<td align="right" style="${sel(i, cur)}${b ? 'font-weight:bold;' : ''}">${num(v)}</td>`).join('')}</tr>`;
+  return `<p style="margin:10px 0 4px"><b>Struktur dan skala upah golongan ${esc(g.kode)}</b> <span style="font-size:11px">(jam penuh, Rp per bulan; posisi Saudara ditebalkan: step ${st})</span></p>
+  <table style="border-collapse:collapse;width:100%;font-size:11px" border="1" cellpadding="3"><tr><th>Komponen</th>${th(st)}</tr>
+  ${row('Gaji pokok', gp, st)}${row('Tunjangan jabatan', g.steps.map((v, i) => v - gp[i]), st)}${row('Upah manajerial', g.steps, st, true)}
+  ${row('Tukin maksimum (' + Math.round(g.tukin_pct * 1000) / 10 + '%)', g.steps.map(v => Math.round(v * g.tukin_pct / c.pembulatan_jam) * c.pembulatan_jam), st)}</table>
+  ${r.profesi && pf ? `<p style="margin:10px 0 4px"><b>Skala tunjangan profesi ${esc(pf.nama)}</b> <span style="font-size:11px">(${pf.basis === 'BULAN' ? 'tetap per bulan, jam penuh' : 'tarif per jam'}; step menurut lama praktik, posisi Saudara: step ${sp})</span></p>
+  <table style="border-collapse:collapse;width:100%;font-size:11px" border="1" cellpadding="3"><tr><th>Kualifikasi</th>${th(sp)}</tr>${row(esc(pf.nama), pf.steps, sp)}</table>` : ''}`;
+}
 function suratHtml(r, rs, g) {
   const bln = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const [y, m] = r.periode.split('-');
@@ -486,6 +503,7 @@ function suratHtml(r, rs, g) {
   ${r.profesi ? `<tr><td>Tunjangan profesi dokter (${esc(r.profesi)} step ${r.step_profesi}: ${r.basis_profesi === 'BULAN' ? rp(r.tarif_jam_profesi) + ' per bulan x faktor jam ' + Number(r.faktor_jam).toFixed(3) : rp(r.tarif_jam_profesi) + ' per jam x ' + Number(r.jam_profesi_bulan).toFixed(1) + ' jam'})</td><td align="right">${rp(tp)}</td></tr>` : ''}
   ${ty > 0 ? `<tr><td>Tunjangan penyesuaian (masa transisi)</td><td align="right">${rp(ty)}</td></tr>` : ''}
   <tr><td><b>Total penghasilan</b></td><td align="right"><b>${rp(total)}</b></td></tr></table>
+  ${g ? skalaSurat(r, g) : ''}
   <p style="font-size:12px">Komponen variabel lain (insentif, jasa medis tindakan) mengikuti kebijakan yang berlaku dan tidak termasuk penghasilan di atas. Iuran BPJS dihitung dari upah yang berlaku. Tunjangan penyesuaian bersifat transisi dan dapat diserap oleh kenaikan step berikutnya.</p>
   <table style="width:100%;margin-top:34px"><tr><td style="width:50%">Penerima,<br><br><br><br>( ${esc(r.nama)} )<br>Tanggal: ____________</td><td>Direktur ${esc(rs)},<br><br><br><br>( ____________________ )</td></tr></table></div>`;
 }
