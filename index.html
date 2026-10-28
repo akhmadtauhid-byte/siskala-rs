@@ -287,7 +287,7 @@ function jabRowHtml(j, i) {
   const sel = n => `<td class="c"><select ${ed ? '' : 'disabled'} onchange="jabChange(${i},${n},this.value)">${[1, 2, 3, 4, 5].map(v => `<option ${Number(j['f' + n]) === v ? 'selected' : ''}>${v}</option>`).join('')}</select></td>`;
   return `<tr id="jr${i}"><td>${ed ? `<input value="${esc(j.nama)}" onchange="JAB[${i}].nama=this.value" style="width:100%;min-width:170px">` : esc(j.nama)}<br>${ed ? `<input value="${esc(j.unit)}" placeholder="Unit" onchange="JAB[${i}].unit=this.value" style="width:110px">
   <select onchange="JAB[${i}].jenis=this.value" style="width:auto"><option ${j.jenis === 'Non-medis' ? 'selected' : ''}>Non-medis</option><option ${j.jenis === 'Medis' ? 'selected' : ''}>Medis</option></select>` : `<small>${esc(j.unit)} - ${esc(j.jenis)}</small>`}</td>
-  ${[1, 2, 3, 4, 5, 6, 7, 8].map(sel).join('')}<td class="c"><input type="number" min="50" max="200" step="5" ${ed ? '' : 'disabled'} value="${Math.round((Number(j.faktor_upah) > 0 ? Number(j.faktor_upah) : 1) * 100)}" onchange="JAB[${i}].faktor_upah=Number(this.value)/100" style="width:75px"></td><td class="c"><input type="number" min="0" step="50000" placeholder="otomatis" ${ed ? '' : 'disabled'} value="${j.tunj_jabatan_nominal === '' || j.tunj_jabatan_nominal == null ? '' : j.tunj_jabatan_nominal}" onchange="JAB[${i}].tunj_jabatan_nominal=this.value===''?'':Number(this.value)" style="width:110px"></td><td class="c" id="jp${i}"><b>${jabPoin(j)}</b></td><td class="c" id="jg${i}"><b>${jabGol(jabPoin(j))}</b></td>
+  ${[1, 2, 3, 4, 5, 6, 7, 8].map(sel).join('')}<td class="c"><input type="number" min="50" max="200" step="5" ${ed ? '' : 'disabled'} value="${Math.round((Number(j.faktor_upah) > 0 ? Number(j.faktor_upah) : 1) * 100)}" onchange="JAB[${i}].faktor_upah=Number(this.value)/100" style="width:75px"></td><td class="c"><input type="number" min="0" step="50000" placeholder="otomatis" ${ed ? '' : 'disabled'} value="${j.tunj_jabatan_nominal === '' || j.tunj_jabatan_nominal == null ? '' : j.tunj_jabatan_nominal}" onchange="JAB[${i}].tunj_jabatan_nominal=this.value===''?'':Number(this.value)" style="width:110px"></td><td class="c"><input type="number" min="0" step="50000" placeholder="otomatis" ${ed ? '' : 'disabled'} value="${j.gapok_nominal === '' || j.gapok_nominal == null ? '' : j.gapok_nominal}" onchange="JAB[${i}].gapok_nominal=this.value===''?'':Number(this.value)" style="width:110px"></td><td class="c" id="jp${i}"><b>${jabPoin(j)}</b></td><td class="c" id="jg${i}"><b>${jabGol(jabPoin(j))}</b></td>
   <td class="c">${ed ? `<button class="btn sm" onclick="jabSave(${i})">Simpan</button>${j.id ? ` <button class="btn sm ghost" onclick="jabToggle(${i})">${j.aktif === 'N' ? 'Aktifkan' : 'Nonaktifkan'}</button> <button class="btn sm warn" onclick="jabHapus(${i})">Hapus</button>` : ''}` : (j.aktif === 'N' ? 'Nonaktif' : '')}</td></tr>`;
 }
 PAGES.jabatan = async () => {
@@ -295,7 +295,7 @@ PAGES.jabatan = async () => {
   const F = S.boot.faktor;
   $('#main').innerHTML = `<h2>Evaluasi Jabatan (metode poin faktor)</h2>
   <p class="mut">Nilai tiap jabatan pada ${F.length} faktor (level 1 rendah sampai 5 sangat tinggi). Poin = jumlah (bobot x level) x 200, maksimum 1.000. Golongan terisi otomatis dari ambang poin. Kolom <b>Skala (%)</b> menyesuaikan seluruh skala upah jabatan (gaji pokok, tunjangan, tukin maks) terhadap golongannya, mis. 125% untuk kepala instalasi. Skor adalah usulan awal; validasi dengan panel (Direktur, Wadir, HRD, Keuangan).</p>
-  <div class="wrap"><table id="jtab" class="stk"><tr><th>Jabatan</th>${F.map(f => `<th class="c" title="${esc(f.deskripsi)}">${esc(f.nama)}<br>${pct(f.bobot, 0)}</th>`).join('')}<th class="c" title="Penyesuaian skala golongan untuk jabatan ini. 100% = sama dengan skala golongan; 125% = 25% lebih tinggi (mis. kepala instalasi)">Skala (%)</th><th class="c" title="Nominal tunjangan jabatan (Rp per bulan, jam penuh), dipotong dari upah skala. Kosong = otomatis (sisa setelah porsi gaji pokok). Dibatasi agar gaji pokok tidak di bawah porsi minimum.">Tunj. jabatan (Rp)</th><th class="c">Poin</th><th class="c">Gol.</th><th></th></tr>
+  <div class="wrap"><table id="jtab" class="stk"><tr><th>Jabatan</th>${F.map(f => `<th class="c" title="${esc(f.deskripsi)}">${esc(f.nama)}<br>${pct(f.bobot, 0)}</th>`).join('')}<th class="c" title="Penyesuaian skala golongan untuk jabatan ini. 100% = sama dengan skala golongan; 125% = 25% lebih tinggi (mis. kepala instalasi)">Skala (%)</th><th class="c" title="Nominal tunjangan jabatan (Rp per bulan, jam penuh), dipotong dari upah skala. Kosong = otomatis (sisa setelah porsi gaji pokok). Dibatasi agar gaji pokok tidak di bawah porsi minimum.">Tunj. jabatan (Rp)</th><th class="c" title="Gaji pokok nominal per jabatan (jam penuh). Bila diisi bersama Tunj. jabatan, kelebihan terhadap upah skala dibayar sebagai tunjangan penyesuaian. Kosong = otomatis.">Gaji pokok (Rp)</th><th class="c">Poin</th><th class="c">Gol.</th><th></th></tr>
   ${JAB.map(jabRowHtml).join('')}</table></div>
   ${can('HRD') ? '<button class="btn" onclick="jabBaru()">+ Tambah jabatan</button>' : ''}`;
 };
@@ -316,7 +316,8 @@ window.jabBaru = () => {
     { k: 'nama', label: 'Nama jabatan', req: true }, { k: 'unit', label: 'Unit / bagian' },
     { k: 'jenis', label: 'Jenis', type: 'select', opts: [['Non-medis', 'Non-medis'], ['Medis', 'Medis']] },
     { k: 'faktor_upah', label: 'Skala jabatan terhadap golongan (%), 100 = sama dengan skala golongan', type: 'number', min: 50, max: 200, step: 5, def: 100, req: true },
-    { k: 'tunj_jabatan_nominal', label: 'Tunjangan jabatan (Rp/bulan, jam penuh); kosong = otomatis', type: 'number', min: 0, step: 50000 }
+    { k: 'tunj_jabatan_nominal', label: 'Tunjangan jabatan (Rp/bulan, jam penuh); kosong = otomatis', type: 'number', min: 0, step: 50000 },
+    { k: 'gapok_nominal', label: 'Gaji pokok (Rp/bulan, jam penuh); kosong = otomatis. Bila diisi bersama tunjangan jabatan, kelebihan terhadap upah skala jadi tunjangan penyesuaian', type: 'number', min: 0, step: 50000 }
   ].concat(S.boot.faktor.map((f, i) => ({ k: 'f' + (i + 1), label: f.nama + ' (1-5)', type: 'number', min: 1, max: 5, step: 1, def: 3, req: true }))), null,
   async o => { o.faktor_upah = Number(o.faktor_upah || 100) / 100; await api('saveJabatan', o); await reload(); toast('Jabatan ditambahkan', 'ok'); PAGES.jabatan(); });
 };
@@ -389,7 +390,7 @@ window.kpiForm = id => {
 
 /* ---- Kalkulator */
 function hasilHtml(h) {
-  const pf = h.profesi, tot0 = h.upah_tetap + h.tukin + h.tunj_profesi + (h.tunj_status || 0);
+  const pf = h.profesi, tot0 = h.upah_tetap + h.tukin + h.tunj_profesi + (h.tunj_status || 0) + (h.kelebihan_skala || 0);
   let kal = '';
   if (h.total_saat_ini > 0) {
     kal = `<div class="${h.selisih_skala >= 0 ? 'info' : 'note'}">Total penghasilan saat ini ${rp(h.total_saat_ini)}. Skala menghasilkan ${rp(tot0)}, selisih <b>${h.selisih_skala >= 0 ? '+' : ''}${rp(h.selisih_skala)}</b>${h.tunj_penyesuaian > 0 ? `, ditutup tunjangan penyesuaian ${rp(h.tunj_penyesuaian)} agar tidak turun` : ''}.`
@@ -512,13 +513,16 @@ function skalaSurat(r, g) {
   g = Object.assign({}, g, { steps: g.steps.map(v => Math.round(v * fj / c0().pembulatan) * c0().pembulatan) });
   const c = S.boot.cfg, st = Number(r.step), pf = (S.boot.profesi || []).filter(p => p.kode === r.profesi)[0], sp = Number(r.step_profesi);
   const nomJ = jb && jb.tunj_jabatan_nominal !== '' && jb.tunj_jabatan_nominal != null ? Math.round(Number(jb.tunj_jabatan_nominal) / c.pembulatan) * c.pembulatan : null;
-  const gp = g.steps.map(v => { const gm = Math.ceil(v * c.porsi_gapok / c.pembulatan - 1e-9) * c.pembulatan; return nomJ === null ? gm : v - Math.max(0, Math.min(nomJ, v - gm)); });
+  const gpN = jb && jb.gapok_nominal !== '' && jb.gapok_nominal != null ? Math.round(Number(jb.gapok_nominal) / c.pembulatan) * c.pembulatan : null;
+  const gp = g.steps.map(v => { if (gpN !== null) return Math.max(0, Math.min(gpN, v)); const gm = Math.ceil(v * c.porsi_gapok / c.pembulatan - 1e-9) * c.pembulatan; return nomJ === null ? gm : v - Math.max(0, Math.min(nomJ, v - gm)); });
+  const tj = g.steps.map((v, i) => gpN !== null && nomJ !== null ? Math.max(0, Math.min(nomJ, v - gp[i])) : v - gp[i]);
+  const ls = g.steps.map((v, i) => v - gp[i] - tj[i]);
   const sel = (i, cur) => i + 1 === cur ? 'background:#e6eef5;font-weight:bold;' : '';
   const th = n => [1, 2, 3, 4, 5, 6, 7].map(i => `<th style="${sel(i - 1, n)}">Step ${i}</th>`).join('');
   const row = (lbl, arr, cur, b) => `<tr><td>${lbl}</td>${arr.map((v, i) => `<td align="right" style="${sel(i, cur)}${b ? 'font-weight:bold;' : ''}">${num(v)}</td>`).join('')}</tr>`;
   return `<p style="margin:10px 0 4px"><b>Struktur dan skala upah golongan ${esc(g.kode)}${fj !== 1 ? ' untuk jabatan ' + esc(r.jabatan) + ' (' + Math.round(fj * 100) + '% dari skala golongan)' : ''}</b> <span style="font-size:11px">(jam penuh, Rp per bulan; posisi Saudara ditebalkan: step ${st})</span></p>
   <table style="border-collapse:collapse;width:100%;font-size:11px" border="1" cellpadding="3"><tr><th>Komponen</th>${th(st)}</tr>
-  ${row('Gaji pokok', gp, st)}${row('Tunjangan jabatan', g.steps.map((v, i) => v - gp[i]), st)}${row('Upah manajerial', g.steps, st, true)}
+  ${row('Gaji pokok', gp, st)}${row('Tunjangan jabatan', tj, st)}${ls.some(x => x > 0) ? row('Tunjangan penyesuaian (kelebihan skala)', ls, st) : ''}${row('Upah skala jabatan', g.steps, st, true)}
   ${row('Tukin maksimum (' + Math.round(g.tukin_pct * 1000) / 10 + '%)', g.steps.map(v => Math.round(v * g.tukin_pct / c.pembulatan_jam) * c.pembulatan_jam), st)}</table>
   ${r.profesi && pf ? `<p style="margin:10px 0 4px"><b>Skala tunjangan profesi ${esc(pf.nama)}</b> <span style="font-size:11px">(${pf.basis === 'BULAN' ? 'tetap per bulan, jam penuh' : 'tarif per jam'}; step menurut lama praktik, posisi Saudara: step ${sp})</span></p>
   <table style="border-collapse:collapse;width:100%;font-size:11px" border="1" cellpadding="3"><tr><th>Kualifikasi</th>${th(sp)}</tr>${row(esc(pf.nama), pf.steps, sp)}</table>` : ''}`;
