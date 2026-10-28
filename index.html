@@ -316,9 +316,15 @@ PAGES.manajer = async () => {
   ${B.pegawai.map(p => `<tr><td><b>${esc(p.nama)}</b></td><td>${esc(p.nip)}</td><td>${esc(p.jabatan_nama)}</td><td class="c">${esc(p.golongan)}</td><td class="c">${esc(p.pendidikan)}</td><td class="c">${esc(p.mulai_manajerial)}</td><td class="c">${p.sertifikasi}</td>
   <td class="c">${esc(p.status_kepeg || 'Tetap')}</td><td class="c">${p.profesi ? esc(profNama(p.profesi)) + '<br><small>praktik sejak ' + esc(p.mulai_praktik || '?') + '</small>' : '-'}</td>
   <td class="r">${num(p.upah_saat_ini)}</td><td class="r">${num(p.total_saat_ini)}</td><td class="c">${p.jam_minggu == null ? '<span class="pos-bawah">belum</span>' : p.jam_minggu}${p.profesi && p.jadwal && p.jadwal.jam_profesi !== '' && p.jadwal.jam_profesi != null ? '<br><small>profesi ' + p.jadwal.jam_profesi + '</small>' : ''}</td><td class="c">${p.kpi_terakhir == null ? '<span class="pos-bawah">belum</span>' : pct(p.kpi_terakhir, 0) + '<br><small>' + esc(p.kpi_periode) + '</small>'}</td><td>${esc(p.status)}</td>
-  <td>${ed ? `<button class="btn sm" onclick="pgForm('${p.id}')">Edit</button> <button class="btn sm ghost" onclick="jdForm('${p.id}')">Jadwal</button> <button class="btn sm ghost" onclick="kpiForm('${p.id}')">KPI</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="15" class="mut">Belum ada manajer.</td></tr>'}</table></div>
+  <td>${ed ? `<button class="btn sm" onclick="pgForm('${p.id}')">Edit</button> <button class="btn sm ghost" onclick="jdForm('${p.id}')">Jadwal</button> <button class="btn sm ghost" onclick="kpiForm('${p.id}')">KPI</button> <button class="btn sm warn" onclick="pgHapus('${p.id}')">Hapus</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="15" class="mut">Belum ada manajer.</td></tr>'}</table></div>
   <div class="info">Jadwal jam kerja menentukan faktor jam upah manajerial (jam per minggu dibagi ${B.cfg.jam_standar}) dan, untuk manajer dokter, jam yang dibayar pada tunjangan profesi. Isi jam nyata tiap hari; yang dihitung adalah total jam mingguan.</div>`;
 };
+window.pgHapus = id => run(async () => {
+  const p = S.boot.pegawai.filter(x => x.id === id)[0]; if (!p) return;
+  if (!confirm('Hapus permanen "' + p.nama + '"?\n\nJadwal jam, skor KPI, dan draft penetapannya ikut terhapus. Tidak bisa dibatalkan.\nBila sudah punya penetapan Diajukan/Disetujui, penghapusan ditolak (gunakan Status Nonaktif).')) return;
+  const r = await api('hapusPegawai', { id });
+  await reload(); toast(r.dihapus + ' dihapus' + (r.draft_dihapus ? ' (' + r.draft_dihapus + ' draft ikut terhapus)' : ''), 'ok'); PAGES.manajer();
+});
 window.pgForm = id => {
   const p = id ? S.boot.pegawai.filter(x => x.id === id)[0] : { pendidikan: 'S1', status: 'Aktif', status_kepeg: 'Tetap', sertifikasi: 0, upah_saat_ini: 0, total_saat_ini: 0, profesi: '' };
   openForm(id ? 'Edit manajer' : 'Tambah manajer', [
@@ -438,7 +444,7 @@ PAGES.penetapan = async () => {
   $('#main').innerHTML = `<h2>Penetapan & Persetujuan Upah</h2>
   <div class="row noprint"><input type="month" id="pper" value="${per}" style="width:170px" onchange="S.periode=this.value;penMuat()">
   ${can('HRD') ? '<button class="btn" onclick="penGen()">Hasilkan draft</button><button class="btn ghost" onclick="penAjukan()">Ajukan terpilih</button>' : ''}
-  <button class="btn ghost" onclick="penSetuju()">Setujui terpilih</button><button class="btn err" onclick="penTolak()">Tolak terpilih</button>
+  <button class="btn ghost" onclick="penSetuju()">Setujui terpilih</button><button class="btn ghost" onclick="penHapus()">Hapus draft terpilih</button><button class="btn err" onclick="penTolak()">Tolak terpilih</button>
   <button class="btn ghost" onclick="penCetak()">Cetak pemberitahuan</button><button class="btn ghost" onclick="penCsv()">Unduh CSV</button></div>
   <p class="mut">Alur persetujuan: HRD mengajukan, lalu ${esc(String(S.boot.cfg.alur_approval).split(',').join(' > '))}. Nomor SK dibuat saat tahap terakhir menyetujui. Total penghasilan = upah manajerial + tunjangan kinerja + tunjangan profesi dokter + tunjangan penyesuaian.</p><div id="pbody"></div>`;
   await penMuat();
@@ -468,6 +474,12 @@ window.penGen = () => run(async () => {
 });
 window.penAjukan = () => run(async () => { const ids = penIds(); if (!ids.length) throw new Error('Pilih baris terlebih dulu'); const r = await api('ajukan', { ids }); toast(r.diajukan + ' diajukan', 'ok'); await penMuat(); });
 window.penSetuju = () => run(async () => { const ids = penIds(); if (!ids.length) throw new Error('Pilih baris terlebih dulu'); const r = await api('setujui', { ids }); hasilMsg(r, 'disetujui'); await penMuat(); });
+window.penHapus = () => run(async () => {
+  const ids = penIds(); if (!ids.length) throw new Error('Pilih baris terlebih dulu');
+  if (!confirm('Hapus ' + ids.length + ' baris terpilih? Hanya yang berstatus Draft atau Ditolak yang terhapus; Diajukan/Disetujui dilewati.')) return;
+  const r = await api('hapusPenetapan', { ids });
+  toast(r.dihapus + ' dihapus' + (r.dilewati.length ? ', dilewati: ' + r.dilewati.slice(0, 3).join('; ') : ''), r.dilewati.length ? 'err' : 'ok'); await penMuat();
+});
 window.penTolak = () => run(async () => {
   const ids = penIds(); if (!ids.length) throw new Error('Pilih baris terlebih dulu');
   const alasan = prompt('Alasan penolakan (wajib):'); if (!alasan) return;
