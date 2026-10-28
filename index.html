@@ -288,7 +288,7 @@ function jabRowHtml(j, i) {
   return `<tr id="jr${i}"><td>${ed ? `<input value="${esc(j.nama)}" onchange="JAB[${i}].nama=this.value" style="width:100%;min-width:170px">` : esc(j.nama)}<br>${ed ? `<input value="${esc(j.unit)}" placeholder="Unit" onchange="JAB[${i}].unit=this.value" style="width:110px">
   <select onchange="JAB[${i}].jenis=this.value" style="width:auto"><option ${j.jenis === 'Non-medis' ? 'selected' : ''}>Non-medis</option><option ${j.jenis === 'Medis' ? 'selected' : ''}>Medis</option></select>` : `<small>${esc(j.unit)} - ${esc(j.jenis)}</small>`}</td>
   ${[1, 2, 3, 4, 5, 6, 7, 8].map(sel).join('')}<td class="c"><input type="number" min="50" max="200" step="5" ${ed ? '' : 'disabled'} value="${Math.round((Number(j.faktor_upah) > 0 ? Number(j.faktor_upah) : 1) * 100)}" onchange="JAB[${i}].faktor_upah=Number(this.value)/100" style="width:75px"></td><td class="c"><input type="number" min="0" step="50000" placeholder="otomatis" ${ed ? '' : 'disabled'} value="${j.tunj_jabatan_nominal === '' || j.tunj_jabatan_nominal == null ? '' : j.tunj_jabatan_nominal}" onchange="JAB[${i}].tunj_jabatan_nominal=this.value===''?'':Number(this.value)" style="width:110px"></td><td class="c" id="jp${i}"><b>${jabPoin(j)}</b></td><td class="c" id="jg${i}"><b>${jabGol(jabPoin(j))}</b></td>
-  <td class="c">${ed ? `<button class="btn sm" onclick="jabSave(${i})">Simpan</button>${j.id ? ` <button class="btn sm ghost" onclick="jabToggle(${i})">${j.aktif === 'N' ? 'Aktifkan' : 'Nonaktifkan'}</button>` : ''}` : (j.aktif === 'N' ? 'Nonaktif' : '')}</td></tr>`;
+  <td class="c">${ed ? `<button class="btn sm" onclick="jabSave(${i})">Simpan</button>${j.id ? ` <button class="btn sm ghost" onclick="jabToggle(${i})">${j.aktif === 'N' ? 'Aktifkan' : 'Nonaktifkan'}</button> <button class="btn sm warn" onclick="jabHapus(${i})">Hapus</button>` : ''}` : (j.aktif === 'N' ? 'Nonaktif' : '')}</td></tr>`;
 }
 PAGES.jabatan = async () => {
   JAB = S.boot.jabatan.map(j => Object.assign({}, j));
@@ -300,6 +300,12 @@ PAGES.jabatan = async () => {
   ${can('HRD') ? '<button class="btn" onclick="jabBaru()">+ Tambah jabatan</button>' : ''}`;
 };
 window.jabChange = (i, n, v) => { JAB[i]['f' + n] = Number(v); const p = jabPoin(JAB[i]); $('#jp' + i).innerHTML = `<b>${p}</b>`; $('#jg' + i).innerHTML = `<b>${jabGol(p)}</b>`; };
+window.jabHapus = i => run(async () => {
+  const j = JAB[i]; if (!j || !j.id) return;
+  if (!confirm('Hapus permanen jabatan "' + j.nama + '"?\n\nTidak bisa dibatalkan. Ditolak bila masih dipakai manajer atau sudah punya penetapan Diajukan/Disetujui (gunakan Nonaktifkan).')) return;
+  const r = await api('hapusJabatan', { id: j.id });
+  await reload(); toast(r.dihapus + ' dihapus', 'ok'); PAGES.jabatan();
+});
 window.jabSave = i => run(async () => { await api('saveJabatan', JAB[i]); await reload(); toast('Jabatan disimpan', 'ok'); PAGES.jabatan(); });
 window.jabToggle = i => run(async () => {
   const j = JAB[i]; if (j.aktif !== 'N' && !confirm('Nonaktifkan jabatan ini? Manajer di jabatan ini tidak ikut penetapan baru.')) return;
