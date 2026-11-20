@@ -72,6 +72,18 @@ td select{min-width:54px;padding:4px}
 .wrap table.stk th:first-child,.wrap table.stk td:first-child{position:sticky;left:0;z-index:2;box-shadow:2px 0 0 var(--line)}
 .wrap table.stk td:first-child{background:#fff}
 .wrap table.stk th:first-child{z-index:3}
+/* Manajer: ringkas, header dan kolom nama/aksi selalu terlihat */
+.mwrap{max-height:calc(100vh - 190px);overflow:auto;margin-bottom:14px;border:1px solid var(--line)}
+#mtab{width:100%;font-size:12px}
+#mtab th,#mtab td{padding:4px 6px}
+#mtab th{white-space:normal;line-height:1.2;font-size:11px;position:sticky;top:0;z-index:4}
+#mtab th:first-child{left:0;z-index:6}
+#mtab td:first-child{position:sticky;left:0;z-index:2;background:#fff;box-shadow:2px 0 0 var(--line)}
+#mtab th:last-child,#mtab td:last-child{position:sticky;right:0;z-index:5;box-shadow:-2px 0 0 var(--line)}
+#mtab th:last-child{z-index:7}
+#mtab td:last-child{background:#fff;width:112px}
+#mtab td.aksi{display:table-cell}
+#mtab td.aksi .btn{display:inline-block;width:47%;margin:0 2% 3px 0;text-align:center;padding:3px 2px;font-size:11px}
 /* Evaluasi Jabatan: ringkas, header dan kolom nama/aksi selalu terlihat */
 .jwrap{max-height:calc(100vh - 150px);overflow:auto;margin-bottom:14px;border:1px solid var(--line)}
 #jtab{width:max-content;min-width:100%;font-size:12px}
@@ -381,11 +393,11 @@ const profNama = k => ((S.boot.profesi || []).filter(x => x.kode === k)[0] || {}
 PAGES.manajer = async () => {
   const B = S.boot, ed = can('HRD');
   $('#main').innerHTML = `<div class="row"><h2 style="margin:0;flex:1">Manajer & Jadwal Jam Kerja</h2>${ed ? '<button class="btn" onclick="pgForm()">+ Tambah manajer</button>' : ''}</div>
-  <div class="wrap"><table class="stk"><tr><th>Nama</th><th>NIP</th><th>Jabatan</th><th class="c">Gol.</th><th class="c">Pend.</th><th class="c">Mulai manajerial</th><th class="c">Sert.</th><th class="c">Status kepeg.</th><th class="c">Profesi dokter</th><th class="r">Upah tetap saat ini</th><th class="r">Total penghasilan saat ini</th><th class="c">Jam/minggu</th><th class="c">KPI</th><th>Status</th><th></th></tr>
-  ${B.pegawai.map(p => `<tr><td><b>${esc(p.nama)}</b></td><td>${esc(p.nip)}</td><td>${esc(p.jabatan_nama)}</td><td class="c">${esc(p.golongan)}</td><td class="c">${esc(p.pendidikan)}</td><td class="c">${esc(p.mulai_manajerial)}</td><td class="c">${p.sertifikasi}</td>
+  <div class="mwrap"><table id="mtab" class="stk"><tr><th>Nama</th><th>Jabatan</th><th class="c">Pend. / Sert.</th><th class="c">Mulai manajerial</th><th class="c">Status kepeg.</th><th class="c">Profesi dokter</th><th class="r">Upah tetap / total saat ini</th><th class="c">Jam/mgg</th><th class="c">KPI</th><th class="c">Aksi</th></tr>
+  ${B.pegawai.map(p => `<tr><td><b>${esc(p.nama)}</b>${p.nip ? `<br><small>${esc(p.nip)}</small>` : ''}${p.status === 'Nonaktif' ? '<br><small class="pos-bawah">Nonaktif</small>' : ''}</td><td>${esc(p.jabatan_nama)}<br><small>${esc(p.golongan)}</small></td><td class="c">${esc(p.pendidikan)} / ${p.sertifikasi}</td><td class="c">${esc(p.mulai_manajerial)}</td>
   <td class="c">${esc(p.status_kepeg || 'Tetap')}${p.tim_rincian ? '<br><small>Tim: ' + esc(p.tim_rincian) + '</small>' : ''}</td><td class="c">${p.profesi ? esc(profNama(p.profesi)) + '<br><small>praktik sejak ' + esc(p.mulai_praktik || '?') + '</small>' : '-'}</td>
-  <td class="r">${num(p.upah_saat_ini)}</td><td class="r">${num(p.total_saat_ini)}</td><td class="c">${p.jam_minggu == null ? '<span class="pos-bawah">belum</span>' : p.jam_minggu}${p.profesi && p.jadwal && p.jadwal.jam_profesi !== '' && p.jadwal.jam_profesi != null ? '<br><small>profesi ' + p.jadwal.jam_profesi + '</small>' : ''}</td><td class="c">${p.kpi_terakhir == null ? '<span class="pos-bawah">belum</span>' : pct(p.kpi_terakhir, 0) + '<br><small>' + esc(p.kpi_periode) + '</small>'}</td><td>${esc(p.status)}</td>
-  <td>${ed ? `<button class="btn sm" onclick="pgForm('${p.id}')">Edit</button> <button class="btn sm ghost" onclick="jdForm('${p.id}')">Jadwal</button> <button class="btn sm ghost" onclick="kpiForm('${p.id}')">KPI</button> <button class="btn sm warn" onclick="pgHapus('${p.id}')">Hapus</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="15" class="mut">Belum ada manajer.</td></tr>'}</table></div>
+  <td class="r">${num(p.upah_saat_ini)}<br><small>${num(p.total_saat_ini)}</small></td><td class="c">${p.jam_minggu == null ? '<span class="pos-bawah">belum</span>' : p.jam_minggu}${p.profesi && p.jadwal && p.jadwal.jam_profesi !== '' && p.jadwal.jam_profesi != null ? '<br><small>profesi ' + p.jadwal.jam_profesi + '</small>' : ''}</td><td class="c">${p.kpi_terakhir == null ? '<span class="pos-bawah">belum</span>' : pct(p.kpi_terakhir, 0) + '<br><small>' + esc(p.kpi_periode) + '</small>'}</td>
+  <td class="aksi">${ed ? `<button class="btn sm" onclick="pgForm('${p.id}')">Edit</button><button class="btn sm ghost" onclick="jdForm('${p.id}')">Jadwal</button><button class="btn sm ghost" onclick="kpiForm('${p.id}')">KPI</button><button class="btn sm warn" onclick="pgHapus('${p.id}')">Hapus</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="10" class="mut">Belum ada manajer.</td></tr>'}</table></div>
   <div class="info">Jadwal jam kerja menentukan faktor jam upah manajerial (jam per minggu dibagi ${B.cfg.jam_standar}) dan, untuk manajer dokter, jam yang dibayar pada tunjangan profesi. Isi jam nyata tiap hari; yang dihitung adalah total jam mingguan.</div>`;
 };
 window.pgHapus = id => run(async () => {
