@@ -72,6 +72,17 @@ td select{min-width:54px;padding:4px}
 .wrap table.stk th:first-child,.wrap table.stk td:first-child{position:sticky;left:0;z-index:2;box-shadow:2px 0 0 var(--line)}
 .wrap table.stk td:first-child{background:#fff}
 .wrap table.stk th:first-child{z-index:3}
+/* Penetapan: ringkas, header dan kolom nama selalu terlihat */
+.pwrap{max-height:calc(100vh - 230px);overflow:auto;margin-bottom:14px;border:1px solid var(--line)}
+#ptab{width:100%;font-size:11.5px}
+#ptab th,#ptab td{padding:3px 5px}
+#ptab th{white-space:normal;line-height:1.2;font-size:10.5px;position:sticky;top:0;z-index:4}
+#ptab th:first-child{left:0;z-index:6}
+#ptab td:first-child{position:sticky;left:0;z-index:2;background:#fff;box-shadow:2px 0 0 var(--line);max-width:150px}
+#ptab tr.tot td:first-child{background:#eef3f5}
+#ptab tr.wr td{border-top:0;padding-top:0}
+#ptab tr.wr td:first-child{position:static;box-shadow:none}
+#ptab small{font-size:10px}
 /* Manajer: ringkas, header dan kolom nama/aksi selalu terlihat */
 .mwrap{max-height:calc(100vh - 190px);overflow:auto;margin-bottom:14px;border:1px solid var(--line)}
 #mtab{width:100%;font-size:12px}
@@ -539,15 +550,16 @@ async function penMuat() {
   PEN = await api('listPenetapan', { periode: S.periode });
   const t = k => PEN.reduce((a, r) => a + Number(r[k] || 0), 0);
   const rem = r => (r.total_remunerasi === '' || r.total_remunerasi == null) ? Number(r.upah_tetap) + Number(r.tukin) : Number(r.total_remunerasi);
-  $('#pbody').innerHTML = `<div class="wrap"><table class="stk"><tr><th><input type="checkbox" onclick="document.querySelectorAll('.pc').forEach(c=>c.checked=this.checked)"> Nama / jabatan</th><th class="c">Gol / Step</th><th class="c">Jam</th><th class="r">Gaji pokok</th><th class="r">Tunjangan jabatan</th><th class="r">Tunjangan status</th><th class="r">Tunj. beban kerja</th><th class="r">Fee tim</th><th class="r">Tunjangan profesi</th><th class="r">Tukin</th><th class="r">Penyesuaian</th><th class="r">Total penghasilan</th><th class="r">Saat ini</th><th class="r">BPJS RS</th><th class="r">Biaya RS/bln</th><th>Status</th></tr>
-  ${PEN.map(r => `<tr><td><input type="checkbox" class="pc" value="${r.id}"> <b>${esc(r.nama)}</b><br><small>${esc(r.jabatan)}</small>${r.peringatan ? `<br><small class="pos-atas">${esc(r.peringatan)}</small>` : ''}</td>
-  <td class="c">${esc(r.golongan)} / ${r.step}</td><td class="c">${r.jam_minggu}<br><small>${Number(r.faktor_jam).toFixed(3)}</small></td><td class="r">${num(r.gaji_pokok)}</td><td class="r">${num(r.tunj_jabatan)}</td><td class="r">${Number(r.tunj_status) > 0 ? num(r.tunj_status) + `<br><small>${esc(r.status_kepeg || 'Tetap')}</small>` : '-'}</td><td class="r">${Number(r.tunj_beban) > 0 ? num(r.tunj_beban) : '-'}</td><td class="r">${Number(r.tunj_tim) > 0 ? num(r.tunj_tim) + (r.rincian_tim ? `<br><small>${esc(r.rincian_tim)}</small>` : '') : '-'}</td>
-  <td class="r">${r.profesi ? num(r.tunj_profesi) + `<br><small>${esc(r.profesi)} step ${r.step_profesi}: ${r.basis_profesi === 'BULAN' ? num(r.tarif_jam_profesi) + '/bulan x faktor jam ' + Number(r.faktor_jam).toFixed(2) : num(r.tarif_jam_profesi) + '/jam x ' + Number(r.jam_profesi_bulan).toFixed(1)}</small>` : '-'}</td>
+  const rpf = r => r.profesi ? num(r.tunj_profesi) + `<br><small title="${esc(r.profesi)} step ${r.step_profesi}: ${r.basis_profesi === 'BULAN' ? num(r.tarif_jam_profesi) + ' per bulan x faktor jam ' + Number(r.faktor_jam).toFixed(2) : num(r.tarif_jam_profesi) + ' per jam x ' + Number(r.jam_profesi_bulan).toFixed(1) + ' jam'}">${esc(r.profesi)} step ${r.step_profesi}</small>` : '-';
+  $('#pbody').innerHTML = `<div class="pwrap"><table id="ptab" class="stk"><tr><th><input type="checkbox" onclick="document.querySelectorAll('.pc').forEach(c=>c.checked=this.checked)"> Nama / jabatan</th><th class="c">Gol / Step<br>jam</th><th class="r">Gaji pokok</th><th class="r">Tunjangan jabatan</th><th class="r">Tunjangan status</th><th class="r">Tunj. beban kerja</th><th class="r">Fee tim</th><th class="r">Tunjangan profesi</th><th class="r">Tukin</th><th class="r">Penyesuaian</th><th class="r">Total penghasilan</th><th class="r">Saat ini</th><th class="r">Biaya RS/bln<br>(+BPJS)</th><th class="c">Status</th></tr>
+  ${PEN.map(r => `<tr><td><input type="checkbox" class="pc" value="${r.id}"> <b>${esc(r.nama)}</b><br><small>${esc(r.jabatan)}</small></td>
+  <td class="c">${esc(r.golongan)} / ${r.step}<br><small title="faktor jam ${Number(r.faktor_jam).toFixed(3)}">${r.jam_minggu} jam</small></td><td class="r">${num(r.gaji_pokok)}</td><td class="r">${num(r.tunj_jabatan)}</td><td class="r">${Number(r.tunj_status) > 0 ? num(r.tunj_status) + `<br><small>${esc(r.status_kepeg || 'Tetap')}</small>` : '-'}</td><td class="r">${Number(r.tunj_beban) > 0 ? num(r.tunj_beban) : '-'}</td><td class="r">${Number(r.tunj_tim) > 0 ? num(r.tunj_tim) + (r.rincian_tim ? `<br><small>${esc(r.rincian_tim)}</small>` : '') : '-'}</td>
+  <td class="r">${rpf(r)}</td>
   <td class="r">${num(r.tukin)}</td><td class="r">${Number(r.tunj_penyesuaian) > 0 ? num(r.tunj_penyesuaian) : '-'}</td><td class="r"><b>${num(rem(r))}</b></td>
-  <td class="r">${Number(r.total_saat_ini) > 0 ? num(r.total_saat_ini) : '-'}<br><small>upah tetap ${num(r.upah_saat_ini)}</small><br><small class="${posCls(r.posisi_saat_ini)}">${esc(r.posisi_saat_ini)}${r.kekurangan_ke_min > 0 ? ' (kurang ' + num(r.kekurangan_ke_min) + ')' : ''}</small></td>
-  <td class="r">${num(r.bpjs_pk)}</td><td class="r"><b>${num(r.total_bulan)}</b></td>
-  <td><span class="badge b-${r.status}">${esc(r.status)}${r.tahap ? ': ' + esc(r.tahap) : ''}</span>${r.sk_no ? `<br><small>${esc(r.sk_no)}</small>` : ''}<br><small title="${esc(r.riwayat)}" style="cursor:help">riwayat</small></td></tr>`).join('') || '<tr><td colspan="16" class="mut">Belum ada penetapan untuk periode ini. Klik "Hasilkan draft".</td></tr>'}
-  ${PEN.length ? `<tr class="tot"><td>Total ${PEN.length} manajer</td><td colspan="2"></td><td class="r">${num(t('gaji_pokok'))}</td><td class="r">${num(t('tunj_jabatan'))}</td><td class="r">${num(t('tunj_status'))}</td><td class="r">${num(t('tunj_beban'))}</td><td class="r">${num(t('tunj_tim'))}</td><td class="r">${num(t('tunj_profesi'))}</td><td class="r">${num(t('tukin'))}</td><td class="r">${num(t('tunj_penyesuaian'))}</td><td class="r">${num(PEN.reduce((a, r) => a + rem(r), 0))}</td><td></td><td class="r">${num(t('bpjs_pk'))}</td><td class="r">${num(t('total_bulan'))}</td><td></td></tr>` : ''}</table></div>`;
+  <td class="r" title="upah tetap saat ini ${num(r.upah_saat_ini)}">${Number(r.total_saat_ini) > 0 ? num(r.total_saat_ini) : '-'}<br><small class="${posCls(r.posisi_saat_ini)}">${esc(r.posisi_saat_ini)}${r.kekurangan_ke_min > 0 ? ' (kurang ' + num(r.kekurangan_ke_min) + ')' : ''}</small></td>
+  <td class="r"><b>${num(r.total_bulan)}</b><br><small>BPJS ${num(r.bpjs_pk)}</small></td>
+  <td class="c"><span class="badge b-${r.status}">${esc(r.status)}${r.tahap ? ': ' + esc(r.tahap) : ''}</span>${r.sk_no ? `<br><small>${esc(r.sk_no)}</small>` : ''}<br><small title="${esc(r.riwayat)}" style="cursor:help">riwayat</small></td></tr>${r.peringatan ? `<tr class="wr"><td></td><td colspan="13"><small class="pos-atas">${esc(r.nama)}: ${esc(r.peringatan)}</small></td></tr>` : ''}`).join('') || '<tr><td colspan="14" class="mut">Belum ada penetapan untuk periode ini. Klik "Hasilkan draft".</td></tr>'}
+  ${PEN.length ? `<tr class="tot"><td>Total ${PEN.length} manajer</td><td></td><td class="r">${num(t('gaji_pokok'))}</td><td class="r">${num(t('tunj_jabatan'))}</td><td class="r">${num(t('tunj_status'))}</td><td class="r">${num(t('tunj_beban'))}</td><td class="r">${num(t('tunj_tim'))}</td><td class="r">${num(t('tunj_profesi'))}</td><td class="r">${num(t('tukin'))}</td><td class="r">${num(t('tunj_penyesuaian'))}</td><td class="r">${num(PEN.reduce((a, r) => a + rem(r), 0))}</td><td></td><td class="r">${num(t('total_bulan'))}<br><small>BPJS ${num(t('bpjs_pk'))}</small></td><td></td></tr>` : ''}</table></div>`;
 }
 const penIds = () => Array.from(document.querySelectorAll('.pc:checked')).map(c => c.value);
 function hasilMsg(r, kunci) {
