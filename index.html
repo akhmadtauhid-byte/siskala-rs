@@ -72,8 +72,20 @@ td select{min-width:54px;padding:4px}
 .wrap table.stk th:first-child,.wrap table.stk td:first-child{position:sticky;left:0;z-index:2;box-shadow:2px 0 0 var(--line)}
 .wrap table.stk td:first-child{background:#fff}
 .wrap table.stk th:first-child{z-index:3}
-#jtab th{white-space:normal;min-width:84px;line-height:1.25}
-#jtab td:first-child{min-width:190px}
+/* Evaluasi Jabatan: ringkas, header dan kolom nama/aksi selalu terlihat */
+.jwrap{max-height:calc(100vh - 150px);overflow:auto;margin-bottom:14px;border:1px solid var(--line)}
+#jtab{width:max-content;min-width:100%;font-size:12px}
+#jtab th,#jtab td{padding:4px 5px}
+#jtab th{white-space:normal;min-width:0;line-height:1.2;font-size:11px;position:sticky;top:0;z-index:4}
+#jtab th:first-child{left:0;z-index:6}
+#jtab td:first-child{min-width:0;width:170px;position:sticky;left:0;z-index:2;background:#fff;box-shadow:2px 0 0 var(--line)}
+#jtab td:first-child input{min-width:0!important;width:100%!important}
+#jtab td input[type=number]{width:84px!important;padding:3px 4px}
+#jtab td.c select{width:48px;padding:3px 2px}
+#jtab th:last-child,#jtab td:last-child{position:sticky;right:0;z-index:5;box-shadow:-2px 0 0 var(--line)}
+#jtab td:last-child{background:#fff;width:92px}
+#jtab th:last-child{z-index:7}
+#jtab td:last-child .btn{display:block;width:100%;margin:0 0 3px;text-align:center;padding:3px 4px;font-size:11px}
 
 @media print{.side,.top,.noprint,#toast{display:none!important}.main{margin:0;padding:0}body{background:#fff}.card{border:0}}
 </style>
@@ -296,7 +308,7 @@ PAGES.jabatan = async () => {
   const F = S.boot.faktor;
   $('#main').innerHTML = `<h2>Evaluasi Jabatan (metode poin faktor)</h2>
   <p class="mut">Nilai tiap jabatan pada ${F.length} faktor (level 1 rendah sampai 5 sangat tinggi). Poin = jumlah (bobot x level) x 200, maksimum 1.000. Golongan terisi otomatis dari ambang poin. Kolom <b>Skala (%)</b> menyesuaikan seluruh skala upah jabatan (gaji pokok, tunjangan, tukin maks) terhadap golongannya, mis. 125% untuk kepala instalasi. Skor adalah usulan awal; validasi dengan panel (Direktur, Wadir, HRD, Keuangan).</p>
-  <div class="wrap"><table id="jtab" class="stk"><tr><th>Jabatan</th>${F.map(f => `<th class="c" title="${esc(f.deskripsi)}">${esc(f.nama)}<br>${pct(f.bobot, 0)}</th>`).join('')}<th class="c" title="Penyesuaian skala golongan untuk jabatan ini. 100% = sama dengan skala golongan; 125% = 25% lebih tinggi (mis. kepala instalasi)">Skala (%)</th><th class="c" title="Nominal tunjangan jabatan (Rp per bulan, jam penuh), dipotong dari upah skala. Kosong = otomatis (sisa setelah porsi gaji pokok). Dibatasi agar gaji pokok tidak di bawah porsi minimum.">Tunj. jabatan (Rp)</th><th class="c" title="Gaji pokok nominal per jabatan (jam penuh). Bila diisi bersama Tunj. jabatan, kelebihan terhadap upah skala dibayar sebagai tunjangan penyesuaian. Kosong = otomatis.">Gaji pokok (Rp)</th><th class="c">Poin</th><th class="c">Gol.</th><th></th></tr>
+  <div class="jwrap"><table id="jtab" class="stk"><tr><th>Jabatan</th>${F.map(f => `<th class="c" title="${esc(f.deskripsi)}">${esc(f.nama)}<br>${pct(f.bobot, 0)}</th>`).join('')}<th class="c" title="Penyesuaian skala golongan untuk jabatan ini. 100% = sama dengan skala golongan; 125% = 25% lebih tinggi (mis. kepala instalasi)">Skala (%)</th><th class="c" title="Nominal tunjangan jabatan (Rp per bulan, jam penuh), dipotong dari upah skala. Kosong = otomatis (sisa setelah porsi gaji pokok). Dibatasi agar gaji pokok tidak di bawah porsi minimum.">Tunj. jabatan (Rp)</th><th class="c" title="Gaji pokok nominal per jabatan (jam penuh). Bila diisi bersama Tunj. jabatan, kelebihan terhadap upah skala dibayar sebagai tunjangan penyesuaian. Kosong = otomatis.">Gaji pokok (Rp)</th><th class="c">Poin</th><th class="c">Gol.</th><th class="c">Aksi</th></tr>
   ${JAB.map(jabRowHtml).join('')}</table></div>
   ${can('HRD') ? '<button class="btn" onclick="jabBaru()">+ Tambah jabatan</button>' : ''}`;
 };
