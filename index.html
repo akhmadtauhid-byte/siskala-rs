@@ -159,6 +159,7 @@ const MENU = [
   { id: 'struktur', label: 'Struktur & Skala Upah', ok: () => isStaff() },
   { id: 'jabatan', label: 'Evaluasi Jabatan', ok: () => isStaff() },
   { id: 'manajer', label: 'Manajer & Jadwal Jam', ok: () => isStaff() },
+  { id: 'tim', label: 'Tim & Fee Tim', ok: () => isStaff() },
   { id: 'kalk', label: 'Kalkulator Upah', ok: () => isStaff() },
   { id: 'penetapan', label: 'Penetapan & Persetujuan', ok: () => isStaff() },
   { id: 'laporan', label: 'Laporan Biaya', ok: () => isStaff() },
@@ -323,13 +324,54 @@ window.jabBaru = () => {
 };
 
 /* ---- Manajer & jadwal jam */
+/* ---- Tim & fee tim */
+const timFee = (t, a) => (a.fee_khusus !== '' && a.fee_khusus != null && !isNaN(Number(a.fee_khusus))) ? Number(a.fee_khusus) : Number(a.peran === 'Ketua' ? t.fee_ketua : (a.peran === 'Sekretaris' ? t.fee_sekretaris : t.fee_anggota)) || 0;
+PAGES.tim = async () => {
+  const B = S.boot, ed = can('HRD'), TIM = B.tim || [], ANG = B.anggota || [];
+  const pgNama = id => ((B.pegawai.filter(p => p.id === id)[0]) || {}).nama || '(tidak ditemukan)';
+  $('#main').innerHTML = `<div class="row"><h2 style="margin:0;flex:1">Tim & Fee Tim</h2>${ed ? '<button class="btn" onclick="timForm()">+ Tambah tim</button>' : ''}</div>
+  <div class="info">Fee tim dibayar tetap per bulan sesuai peran (Ketua, Sekretaris, Anggota). Satu orang boleh ikut banyak tim; fee semua tim dijumlahkan sebagai <b>Fee tim</b> di Penetapan. Fee ditambahkan di atas total terlindungi, tidak diserap tunjangan penyesuaian, dan tidak dikurangi faktor jam. Isi <b>fee khusus</b> pada anggota bila nilainya berbeda dari fee peran.</div>
+  ${TIM.map(t => { const as = ANG.filter(a => a.tim_id === t.id); return `<div class="card" style="margin:12px 0"><div class="row"><h3 style="margin:0;flex:1">${esc(t.nama)}${t.aktif === 'N' ? ' <small class="pos-bawah">nonaktif</small>' : ''}</h3>${ed ? `<button class="btn sm ghost" onclick="timForm('${t.id}')">Edit tim</button> <button class="btn sm" onclick="anggForm('${t.id}')">+ Anggota</button> <button class="btn sm warn" onclick="timHapus('${t.id}')">Hapus tim</button>` : ''}</div>
+  <p class="mut">Fee per bulan: Ketua ${rp(t.fee_ketua)}, Sekretaris ${rp(t.fee_sekretaris)}, Anggota ${rp(t.fee_anggota)}${t.keterangan ? '. ' + esc(t.keterangan) : ''}</p>
+  <table><tr><th>Nama</th><th>Peran</th><th class="r">Fee/bulan</th><th></th></tr>
+  ${as.map(a => `<tr><td>${esc(pgNama(a.pegawai_id))}${a.aktif === 'N' ? ' <small class="pos-bawah">nonaktif</small>' : ''}</td><td>${esc(a.peran)}</td><td class="r">${num(timFee(t, a))}${a.fee_khusus !== '' && a.fee_khusus != null ? ' <small>(khusus)</small>' : ''}</td><td>${ed ? `<button class="btn sm ghost" onclick="anggForm('${t.id}','${a.id}')">Edit</button> <button class="btn sm warn" onclick="anggHapus('${a.id}')">Hapus</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="4" class="mut">Belum ada anggota.</td></tr>'}</table></div>`; }).join('') || '<p class="mut">Belum ada tim. Klik "+ Tambah tim".</p>'}
+  <h3>Ringkasan per orang</h3><div class="wrap"><table><tr><th>Nama</th><th>Tim yang diikuti</th><th class="r">Total fee tim/bulan</th></tr>
+  ${B.pegawai.filter(p => Number(p.tim_total) > 0 || p.tim_rincian).map(p => `<tr><td>${esc(p.nama)}</td><td>${esc(p.tim_rincian || '-')}</td><td class="r"><b>${num(p.tim_total)}</b></td></tr>`).join('') || '<tr><td colspan="3" class="mut">Belum ada yang mengikuti tim.</td></tr>'}</table></div>`;
+};
+window.timForm = id => {
+  const t = id ? S.boot.tim.filter(x => x.id === id)[0] : { fee_ketua: 0, fee_sekretaris: 0, fee_anggota: 0, aktif: 'Y' };
+  openForm(id ? 'Edit tim' : 'Tambah tim', [
+    { k: 'nama', label: 'Nama tim', req: true },
+    { k: 'fee_ketua', label: 'Fee Ketua (Rp/bulan)', type: 'number', min: 0, step: 50000 }, { k: 'fee_sekretaris', label: 'Fee Sekretaris (Rp/bulan)', type: 'number', min: 0, step: 50000 },
+    { k: 'fee_anggota', label: 'Fee Anggota (Rp/bulan)', type: 'number', min: 0, step: 50000 },
+    { k: 'aktif', label: 'Status', type: 'select', opts: [['Y', 'Aktif'], ['N', 'Nonaktif']] }, { k: 'keterangan', label: 'Keterangan', type: 'textarea' }
+  ], t, async o => { if (id) o.id = id; await api('saveTim', o); await reload(); toast('Tim tersimpan', 'ok'); PAGES.tim(); });
+};
+window.timHapus = id => run(async () => {
+  const t = S.boot.tim.filter(x => x.id === id)[0]; if (!t) return;
+  if (!confirm('Hapus tim "' + t.nama + '" beserta seluruh keanggotaannya?\n\nPenetapan yang sudah dibuat tidak berubah. Tidak bisa dibatalkan.')) return;
+  const r = await api('hapusTim', { id }); await reload(); toast(r.dihapus + ' dihapus', 'ok'); PAGES.tim();
+});
+window.anggForm = (timId, id) => {
+  const a = id ? S.boot.anggota.filter(x => x.id === id)[0] : { peran: 'Anggota', fee_khusus: '', aktif: 'Y' };
+  openForm(id ? 'Edit anggota tim' : 'Tambah anggota tim', [
+    { k: 'pegawai_id', label: 'Nama', type: 'select', opts: S.boot.pegawai.filter(p => p.status !== 'Nonaktif').map(p => [p.id, p.nama + ' (' + p.jabatan_nama + ')']) },
+    { k: 'peran', label: 'Peran', type: 'select', opts: [['Ketua', 'Ketua'], ['Sekretaris', 'Sekretaris'], ['Anggota', 'Anggota']] },
+    { k: 'fee_khusus', label: 'Fee khusus (Rp/bulan), kosong = sesuai peran', type: 'number', min: 0, step: 50000 },
+    { k: 'aktif', label: 'Status', type: 'select', opts: [['Y', 'Aktif'], ['N', 'Nonaktif']] }, { k: 'catatan', label: 'Catatan', type: 'textarea' }
+  ], a, async o => { o.tim_id = timId; if (id) o.id = id; await api('saveAnggotaTim', o); await reload(); toast('Anggota tersimpan', 'ok'); PAGES.tim(); });
+};
+window.anggHapus = id => run(async () => {
+  if (!confirm('Hapus anggota dari tim ini?')) return;
+  await api('hapusAnggotaTim', { id }); await reload(); toast('Anggota dihapus', 'ok'); PAGES.tim();
+});
 const profNama = k => ((S.boot.profesi || []).filter(x => x.kode === k)[0] || {}).nama || '';
 PAGES.manajer = async () => {
   const B = S.boot, ed = can('HRD');
   $('#main').innerHTML = `<div class="row"><h2 style="margin:0;flex:1">Manajer & Jadwal Jam Kerja</h2>${ed ? '<button class="btn" onclick="pgForm()">+ Tambah manajer</button>' : ''}</div>
   <div class="wrap"><table class="stk"><tr><th>Nama</th><th>NIP</th><th>Jabatan</th><th class="c">Gol.</th><th class="c">Pend.</th><th class="c">Mulai manajerial</th><th class="c">Sert.</th><th class="c">Status kepeg.</th><th class="c">Profesi dokter</th><th class="r">Upah tetap saat ini</th><th class="r">Total penghasilan saat ini</th><th class="c">Jam/minggu</th><th class="c">KPI</th><th>Status</th><th></th></tr>
   ${B.pegawai.map(p => `<tr><td><b>${esc(p.nama)}</b></td><td>${esc(p.nip)}</td><td>${esc(p.jabatan_nama)}</td><td class="c">${esc(p.golongan)}</td><td class="c">${esc(p.pendidikan)}</td><td class="c">${esc(p.mulai_manajerial)}</td><td class="c">${p.sertifikasi}</td>
-  <td class="c">${esc(p.status_kepeg || 'Tetap')}</td><td class="c">${p.profesi ? esc(profNama(p.profesi)) + '<br><small>praktik sejak ' + esc(p.mulai_praktik || '?') + '</small>' : '-'}</td>
+  <td class="c">${esc(p.status_kepeg || 'Tetap')}${p.tim_rincian ? '<br><small>Tim: ' + esc(p.tim_rincian) + '</small>' : ''}</td><td class="c">${p.profesi ? esc(profNama(p.profesi)) + '<br><small>praktik sejak ' + esc(p.mulai_praktik || '?') + '</small>' : '-'}</td>
   <td class="r">${num(p.upah_saat_ini)}</td><td class="r">${num(p.total_saat_ini)}</td><td class="c">${p.jam_minggu == null ? '<span class="pos-bawah">belum</span>' : p.jam_minggu}${p.profesi && p.jadwal && p.jadwal.jam_profesi !== '' && p.jadwal.jam_profesi != null ? '<br><small>profesi ' + p.jadwal.jam_profesi + '</small>' : ''}</td><td class="c">${p.kpi_terakhir == null ? '<span class="pos-bawah">belum</span>' : pct(p.kpi_terakhir, 0) + '<br><small>' + esc(p.kpi_periode) + '</small>'}</td><td>${esc(p.status)}</td>
   <td>${ed ? `<button class="btn sm" onclick="pgForm('${p.id}')">Edit</button> <button class="btn sm ghost" onclick="jdForm('${p.id}')">Jadwal</button> <button class="btn sm ghost" onclick="kpiForm('${p.id}')">KPI</button> <button class="btn sm warn" onclick="pgHapus('${p.id}')">Hapus</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="15" class="mut">Belum ada manajer.</td></tr>'}</table></div>
   <div class="info">Jadwal jam kerja menentukan faktor jam upah manajerial (jam per minggu dibagi ${B.cfg.jam_standar}) dan, untuk manajer dokter, jam yang dibayar pada tunjangan profesi. Isi jam nyata tiap hari; yang dihitung adalah total jam mingguan.</div>`;
@@ -397,7 +439,7 @@ function hasilHtml(h) {
       + (pf ? (pf.basis === 'BULAN' ? ` Tunjangan profesi yang pas dengan angka saat ini: <b>${rp(h.total_saat_ini - h.upah_tetap - h.tukin - (h.tunj_status || 0))}</b> per bulan; hasil skala: <b>${rp(h.tunj_profesi)}</b>.` : ` Tarif jam profesi yang pas dengan angka saat ini: <b>${rp((h.total_saat_ini - h.upah_tetap - h.tukin - (h.tunj_status || 0)) / pf.jam_bulan)}</b> per jam; tarif skala: <b>${rp(pf.tarif_jam)}</b>.`) : '') + '</div>';
   }
   const T = h.total_remunerasi, pc = v => T > 0 ? (Math.round(v / T * 1000) / 10).toLocaleString('id-ID') + '%' : '-';
-  const komp = `<p class="mut">Komposisi total penghasilan: gaji pokok ${pc(h.gaji_pokok)}, tunjangan manajer ${pc(h.tunj_jabatan)}, tunjangan status ${pc(h.tunj_status || 0)}, tunjangan profesi ${pc(h.tunj_profesi)}, tukin ${pc(h.tukin)}, tunjangan beban kerja ${pc(h.tunj_beban || 0)}, penyesuaian ${pc(h.tunj_penyesuaian)}.</p>`;
+  const komp = `<p class="mut">Komposisi total penghasilan: gaji pokok ${pc(h.gaji_pokok)}, tunjangan manajer ${pc(h.tunj_jabatan)}, tunjangan status ${pc(h.tunj_status || 0)}, tunjangan profesi ${pc(h.tunj_profesi)}, tukin ${pc(h.tukin)}, tunjangan beban kerja ${pc(h.tunj_beban || 0)}, fee tim ${pc(h.tunj_tim || 0)}, penyesuaian ${pc(h.tunj_penyesuaian)}.</p>`;
   return `<div class="cards">
   <div class="card"><div class="statl">Golongan / Step</div><div class="stat">${esc(h.golongan)} / Step ${h.step}</div><small>${esc(h.jabatan)} (${h.poin_jabatan} poin)</small></div>
   <div class="card"><div class="statl">Faktor jam kerja</div><div class="stat">${h.faktor_jam.toFixed(3)}</div><small>${h.jam_minggu} jam/minggu. ${esc(h.cek_jam)}</small></div>
@@ -411,6 +453,7 @@ function hasilHtml(h) {
   ${Number(h.tunj_status) > 0 ? `<tr><td>Tunjangan status kepegawaian (${esc(h.status_kepeg)})</td><td class="r"></td><td class="r">${num(h.tunj_status)}</td></tr>` : ''}
   ${pf ? `<tr class="tot"><td>Lapis 2: Tunjangan profesi dokter<br><small>${pf.basis === 'BULAN' ? esc(pf.nama) + ', step ' + pf.step + ': ' + rp(pf.tarif_jam) + ' per bulan x faktor jam ' + h.faktor_jam.toFixed(3) : esc(pf.nama) + ', step ' + pf.step + ': ' + rp(pf.tarif_jam) + '/jam x ' + pf.jam_bulan.toFixed(1) + ' jam/bulan (' + pf.jam_minggu + ' jam/minggu)'}</small></td><td class="r"></td><td class="r">${num(h.tunj_profesi)}</td></tr>` : ''}
   ${Number(h.tunj_beban) > 0 ? `<tr><td>Tunjangan beban kerja<br><small>tambahan di atas total terlindungi</small></td><td class="r"></td><td class="r">${num(h.tunj_beban)}</td></tr>` : ''}
+  ${Number(h.tunj_tim) > 0 ? `<tr><td>Fee tim<br><small>tambahan di atas total terlindungi</small></td><td class="r"></td><td class="r">${num(h.tunj_tim)}</td></tr>` : ''}
   ${h.tunj_penyesuaian > 0 ? `<tr class="tot"><td>Lapis 3: Tunjangan penyesuaian (perlindungan transisi)</td><td class="r"></td><td class="r">${num(h.tunj_penyesuaian)}</td></tr>` : ''}
   <tr class="tot"><td>Total penghasilan</td><td class="r"></td><td class="r">${num(h.total_remunerasi)}</td></tr>
   <tr><td>BPJS pemberi kerja: Kesehatan ${num(h.bpjs.kes)}, JHT ${num(h.bpjs.jht)}, JP ${num(h.bpjs.jp)}, JKK ${num(h.bpjs.jkk)}, JKM ${num(h.bpjs.jkm)}</td><td class="r"></td><td class="r">${num(h.bpjs.total)}</td></tr>
@@ -433,7 +476,8 @@ PAGES.kalk = async () => {
   <label class="fld"><span>Lama praktik dokter (tahun)</span><input id="kl" type="number" min="0" step="0.5" value="0"></label>
   <label class="fld"><span>Jam layanan/jaga profesi per minggu (kosong = sama dengan total jam)</span><input id="kjp" type="number" min="0" max="168" step="0.5"></label>
   <label class="fld"><span>Total penghasilan rutin saat ini (Rp/bulan, opsional)</span><input id="kt" type="number" min="0" step="50000" placeholder="Mis. 17500000"></label>
-  <label class="fld"><span>Tunjangan beban kerja (Rp/bulan, opsional)</span><input id="kb" type="number" min="0" step="50000" placeholder="0"></label></div>
+  <label class="fld"><span>Tunjangan beban kerja (Rp/bulan, opsional)</span><input id="kb" type="number" min="0" step="50000" placeholder="0"></label>
+  <label class="fld"><span>Fee tim (Rp/bulan, otomatis dari menu Tim saat memilih manajer)</span><input id="kft" type="number" min="0" step="50000" placeholder="0"></label></div>
   <h3>Jam kerja per hari</h3><div class="grid3">${D.map((k, i) => `<label class="fld"><span>${DN[i]}</span><input id="kd${i}" type="number" min="0" max="24" step="0.5" value="${[7, 7, 7, 7, 7, 5, 0][i]}"></label>`).join('')}</div>
   <button class="btn" onclick="kalkHitung()">Hitung</button></div><div id="kres"></div>`;
 };
@@ -443,13 +487,13 @@ window.kalkIsi = () => {
   $('#kj').value = p.jabatan_id; $('#ke').value = p.pendidikan; $('#ks').value = p.sertifikasi;
   $('#kk').value = p.kpi_terakhir != null ? Math.round(p.kpi_terakhir * 10000) / 100 : '';
   $('#km').value = yrs(p.mulai_manajerial);
-  $('#kst').value = p.status_kepeg || 'Tetap'; $('#kf').value = p.profesi || ''; $('#kl').value = yrs(p.mulai_praktik); $('#kt').value = Number(p.total_saat_ini) > 0 ? p.total_saat_ini : ''; $('#kb').value = Number(p.tunj_beban) > 0 ? p.tunj_beban : '';
+  $('#kst').value = p.status_kepeg || 'Tetap'; $('#kf').value = p.profesi || ''; $('#kl').value = yrs(p.mulai_praktik); $('#kt').value = Number(p.total_saat_ini) > 0 ? p.total_saat_ini : ''; $('#kb').value = Number(p.tunj_beban) > 0 ? p.tunj_beban : ''; $('#kft').value = Number(p.tim_total) > 0 ? p.tim_total : '';
   $('#kjp').value = p.jadwal && p.jadwal.jam_profesi != null ? p.jadwal.jam_profesi : '';
   if (p.jadwal) D.forEach((k, i) => { $('#kd' + i).value = p.jadwal[k]; });
 };
 window.kalkHitung = () => run(async () => {
   const h = await api('simulasi', { jabatan_id: $('#kj').value, pendidikan: $('#ke').value, masa_tahun: $('#km').value, sertifikasi: $('#ks').value, kpi: $('#kk').value,
-    status_kepeg: $('#kst').value, profesi: $('#kf').value, masa_praktik: $('#kl').value, jam_profesi: $('#kjp').value, total_saat_ini: $('#kt').value, tunj_beban: $('#kb').value,
+    status_kepeg: $('#kst').value, profesi: $('#kf').value, masa_praktik: $('#kl').value, jam_profesi: $('#kjp').value, total_saat_ini: $('#kt').value, tunj_beban: $('#kb').value, tunj_tim: $('#kft').value,
     jam: D.map((k, i) => Number($('#kd' + i).value || 0)) });
   $('#kres').innerHTML = hasilHtml(h);
 });
@@ -464,22 +508,22 @@ PAGES.penetapan = async () => {
   ${can('HRD') ? '<button class="btn" onclick="penGen()">Hasilkan draft</button><button class="btn ghost" onclick="penAjukan()">Ajukan terpilih</button>' : ''}
   <button class="btn ghost" onclick="penSetuju()">Setujui terpilih</button><button class="btn ghost" onclick="penHapus()">Hapus draft terpilih</button><button class="btn err" onclick="penTolak()">Tolak terpilih</button>
   <button class="btn ghost" onclick="penCetak()">Cetak pemberitahuan</button><button class="btn ghost" onclick="penCsv()">Unduh CSV</button></div>
-  <p class="mut">Alur persetujuan: HRD mengajukan, lalu ${esc(String(S.boot.cfg.alur_approval).split(',').join(' > '))}. Nomor SK dibuat saat tahap terakhir menyetujui. Total penghasilan = upah manajerial + tunjangan kinerja + tunjangan status + tunjangan profesi dokter + tunjangan penyesuaian + tunjangan beban kerja.</p><div id="pbody"></div>`;
+  <p class="mut">Alur persetujuan: HRD mengajukan, lalu ${esc(String(S.boot.cfg.alur_approval).split(',').join(' > '))}. Nomor SK dibuat saat tahap terakhir menyetujui. Total penghasilan = upah manajerial + tunjangan kinerja + tunjangan status + tunjangan profesi dokter + tunjangan penyesuaian + tunjangan beban kerja + fee tim.</p><div id="pbody"></div>`;
   await penMuat();
 };
 async function penMuat() {
   PEN = await api('listPenetapan', { periode: S.periode });
   const t = k => PEN.reduce((a, r) => a + Number(r[k] || 0), 0);
   const rem = r => (r.total_remunerasi === '' || r.total_remunerasi == null) ? Number(r.upah_tetap) + Number(r.tukin) : Number(r.total_remunerasi);
-  $('#pbody').innerHTML = `<div class="wrap"><table class="stk"><tr><th><input type="checkbox" onclick="document.querySelectorAll('.pc').forEach(c=>c.checked=this.checked)"> Nama / jabatan</th><th class="c">Gol / Step</th><th class="c">Jam</th><th class="r">Gaji pokok</th><th class="r">Tunjangan jabatan</th><th class="r">Tunjangan status</th><th class="r">Tunj. beban kerja</th><th class="r">Tunjangan profesi</th><th class="r">Tukin</th><th class="r">Penyesuaian</th><th class="r">Total penghasilan</th><th class="r">Saat ini</th><th class="r">BPJS RS</th><th class="r">Biaya RS/bln</th><th>Status</th></tr>
+  $('#pbody').innerHTML = `<div class="wrap"><table class="stk"><tr><th><input type="checkbox" onclick="document.querySelectorAll('.pc').forEach(c=>c.checked=this.checked)"> Nama / jabatan</th><th class="c">Gol / Step</th><th class="c">Jam</th><th class="r">Gaji pokok</th><th class="r">Tunjangan jabatan</th><th class="r">Tunjangan status</th><th class="r">Tunj. beban kerja</th><th class="r">Fee tim</th><th class="r">Tunjangan profesi</th><th class="r">Tukin</th><th class="r">Penyesuaian</th><th class="r">Total penghasilan</th><th class="r">Saat ini</th><th class="r">BPJS RS</th><th class="r">Biaya RS/bln</th><th>Status</th></tr>
   ${PEN.map(r => `<tr><td><input type="checkbox" class="pc" value="${r.id}"> <b>${esc(r.nama)}</b><br><small>${esc(r.jabatan)}</small>${r.peringatan ? `<br><small class="pos-atas">${esc(r.peringatan)}</small>` : ''}</td>
-  <td class="c">${esc(r.golongan)} / ${r.step}</td><td class="c">${r.jam_minggu}<br><small>${Number(r.faktor_jam).toFixed(3)}</small></td><td class="r">${num(r.gaji_pokok)}</td><td class="r">${num(r.tunj_jabatan)}</td><td class="r">${Number(r.tunj_status) > 0 ? num(r.tunj_status) + `<br><small>${esc(r.status_kepeg || 'Tetap')}</small>` : '-'}</td><td class="r">${Number(r.tunj_beban) > 0 ? num(r.tunj_beban) : '-'}</td>
+  <td class="c">${esc(r.golongan)} / ${r.step}</td><td class="c">${r.jam_minggu}<br><small>${Number(r.faktor_jam).toFixed(3)}</small></td><td class="r">${num(r.gaji_pokok)}</td><td class="r">${num(r.tunj_jabatan)}</td><td class="r">${Number(r.tunj_status) > 0 ? num(r.tunj_status) + `<br><small>${esc(r.status_kepeg || 'Tetap')}</small>` : '-'}</td><td class="r">${Number(r.tunj_beban) > 0 ? num(r.tunj_beban) : '-'}</td><td class="r">${Number(r.tunj_tim) > 0 ? num(r.tunj_tim) + (r.rincian_tim ? `<br><small>${esc(r.rincian_tim)}</small>` : '') : '-'}</td>
   <td class="r">${r.profesi ? num(r.tunj_profesi) + `<br><small>${esc(r.profesi)} step ${r.step_profesi}: ${r.basis_profesi === 'BULAN' ? num(r.tarif_jam_profesi) + '/bulan x faktor jam ' + Number(r.faktor_jam).toFixed(2) : num(r.tarif_jam_profesi) + '/jam x ' + Number(r.jam_profesi_bulan).toFixed(1)}</small>` : '-'}</td>
   <td class="r">${num(r.tukin)}</td><td class="r">${Number(r.tunj_penyesuaian) > 0 ? num(r.tunj_penyesuaian) : '-'}</td><td class="r"><b>${num(rem(r))}</b></td>
   <td class="r">${Number(r.total_saat_ini) > 0 ? num(r.total_saat_ini) : '-'}<br><small>upah tetap ${num(r.upah_saat_ini)}</small><br><small class="${posCls(r.posisi_saat_ini)}">${esc(r.posisi_saat_ini)}${r.kekurangan_ke_min > 0 ? ' (kurang ' + num(r.kekurangan_ke_min) + ')' : ''}</small></td>
   <td class="r">${num(r.bpjs_pk)}</td><td class="r"><b>${num(r.total_bulan)}</b></td>
-  <td><span class="badge b-${r.status}">${esc(r.status)}${r.tahap ? ': ' + esc(r.tahap) : ''}</span>${r.sk_no ? `<br><small>${esc(r.sk_no)}</small>` : ''}<br><small title="${esc(r.riwayat)}" style="cursor:help">riwayat</small></td></tr>`).join('') || '<tr><td colspan="15" class="mut">Belum ada penetapan untuk periode ini. Klik "Hasilkan draft".</td></tr>'}
-  ${PEN.length ? `<tr class="tot"><td>Total ${PEN.length} manajer</td><td colspan="2"></td><td class="r">${num(t('gaji_pokok'))}</td><td class="r">${num(t('tunj_jabatan'))}</td><td class="r">${num(t('tunj_status'))}</td><td class="r">${num(t('tunj_beban'))}</td><td class="r">${num(t('tunj_profesi'))}</td><td class="r">${num(t('tukin'))}</td><td class="r">${num(t('tunj_penyesuaian'))}</td><td class="r">${num(PEN.reduce((a, r) => a + rem(r), 0))}</td><td></td><td class="r">${num(t('bpjs_pk'))}</td><td class="r">${num(t('total_bulan'))}</td><td></td></tr>` : ''}</table></div>`;
+  <td><span class="badge b-${r.status}">${esc(r.status)}${r.tahap ? ': ' + esc(r.tahap) : ''}</span>${r.sk_no ? `<br><small>${esc(r.sk_no)}</small>` : ''}<br><small title="${esc(r.riwayat)}" style="cursor:help">riwayat</small></td></tr>`).join('') || '<tr><td colspan="16" class="mut">Belum ada penetapan untuk periode ini. Klik "Hasilkan draft".</td></tr>'}
+  ${PEN.length ? `<tr class="tot"><td>Total ${PEN.length} manajer</td><td colspan="2"></td><td class="r">${num(t('gaji_pokok'))}</td><td class="r">${num(t('tunj_jabatan'))}</td><td class="r">${num(t('tunj_status'))}</td><td class="r">${num(t('tunj_beban'))}</td><td class="r">${num(t('tunj_tim'))}</td><td class="r">${num(t('tunj_profesi'))}</td><td class="r">${num(t('tukin'))}</td><td class="r">${num(t('tunj_penyesuaian'))}</td><td class="r">${num(PEN.reduce((a, r) => a + rem(r), 0))}</td><td></td><td class="r">${num(t('bpjs_pk'))}</td><td class="r">${num(t('total_bulan'))}</td><td></td></tr>` : ''}</table></div>`;
 }
 const penIds = () => Array.from(document.querySelectorAll('.pc:checked')).map(c => c.value);
 function hasilMsg(r, kunci) {
@@ -504,8 +548,8 @@ window.penTolak = () => run(async () => {
   const r = await api('tolak', { ids, catatan: alasan }); hasilMsg(r, 'ditolak'); await penMuat();
 });
 window.penCsv = () => {
-  const h = ['Periode', 'NIP', 'Nama', 'Jabatan', 'Golongan', 'Step', 'Jam/minggu', 'Faktor jam', 'Gaji pokok', 'Tunjangan jabatan', 'Upah manajerial', 'Status kepegawaian', 'Tunjangan status', 'Tunjangan beban kerja', 'Profesi', 'Step profesi', 'Tarif jam profesi', 'Jam profesi/bulan', 'Tunjangan profesi', 'Tukin', 'Tunjangan penyesuaian', 'Total penghasilan', 'Total saat ini', 'Selisih skala vs saat ini', 'BPJS pemberi kerja', 'Biaya RS/bulan', 'Upah tetap saat ini', 'Posisi', 'Kekurangan ke batas bawah', 'Status', 'No SK'];
-  csvDownload('penetapan-upah-' + S.periode + '.csv', [h].concat(PEN.map(r => [r.periode, r.nip, r.nama, r.jabatan, r.golongan, r.step, r.jam_minggu, r.faktor_jam, r.gaji_pokok, r.tunj_jabatan, r.upah_tetap, r.status_kepeg || 'Tetap', r.tunj_status || 0, r.tunj_beban || 0, r.profesi, r.step_profesi, r.tarif_jam_profesi, r.jam_profesi_bulan, r.tunj_profesi, r.tukin, r.tunj_penyesuaian, r.total_remunerasi, r.total_saat_ini, r.selisih_skala, r.bpjs_pk, r.total_bulan, r.upah_saat_ini, r.posisi_saat_ini, r.kekurangan_ke_min, r.status, r.sk_no])));
+  const h = ['Periode', 'NIP', 'Nama', 'Jabatan', 'Golongan', 'Step', 'Jam/minggu', 'Faktor jam', 'Gaji pokok', 'Tunjangan jabatan', 'Upah manajerial', 'Status kepegawaian', 'Tunjangan status', 'Tunjangan beban kerja', 'Fee tim', 'Profesi', 'Step profesi', 'Tarif jam profesi', 'Jam profesi/bulan', 'Tunjangan profesi', 'Tukin', 'Tunjangan penyesuaian', 'Total penghasilan', 'Total saat ini', 'Selisih skala vs saat ini', 'BPJS pemberi kerja', 'Biaya RS/bulan', 'Upah tetap saat ini', 'Posisi', 'Kekurangan ke batas bawah', 'Status', 'No SK'];
+  csvDownload('penetapan-upah-' + S.periode + '.csv', [h].concat(PEN.map(r => [r.periode, r.nip, r.nama, r.jabatan, r.golongan, r.step, r.jam_minggu, r.faktor_jam, r.gaji_pokok, r.tunj_jabatan, r.upah_tetap, r.status_kepeg || 'Tetap', r.tunj_status || 0, r.tunj_beban || 0, r.tunj_tim || 0, r.profesi, r.step_profesi, r.tarif_jam_profesi, r.jam_profesi_bulan, r.tunj_profesi, r.tukin, r.tunj_penyesuaian, r.total_remunerasi, r.total_saat_ini, r.selisih_skala, r.bpjs_pk, r.total_bulan, r.upah_saat_ini, r.posisi_saat_ini, r.kekurangan_ke_min, r.status, r.sk_no])));
 };
 const c0 = () => S.boot.cfg;
 function skalaSurat(r, g) {
@@ -531,7 +575,7 @@ function suratHtml(r, rs, g) {
   const bln = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const [y, m] = r.periode.split('-');
   const tp = Number(r.tunj_profesi || 0), ty = Number(r.tunj_penyesuaian || 0);
-  const total = Number(r.upah_tetap) + Number(r.tukin) + tp + ty + Number(r.tunj_status || 0) + Number(r.tunj_beban || 0);
+  const total = Number(r.upah_tetap) + Number(r.tukin) + tp + ty + Number(r.tunj_status || 0) + Number(r.tunj_beban || 0) + Number(r.tunj_tim || 0);
   return `<div style="page-break-after:always;padding:30px 40px;font-family:Arial;font-size:13px;line-height:1.5">
   <h2 style="text-align:center;margin:0">${esc(rs)}</h2><p style="text-align:center;margin:0 0 18px">PEMBERITAHUAN STRUKTUR DAN SKALA UPAH<br>No. SK: ${esc(r.sk_no)}</p>
   <p>Sesuai ketentuan Peraturan Menteri Ketenagakerjaan Nomor 1 Tahun 2017 tentang Struktur dan Skala Upah, kami memberitahukan penempatan upah Saudara berikut:</p>
@@ -544,6 +588,7 @@ function suratHtml(r, rs, g) {
   <tr><td>Tunjangan kinerja periode ini (sesuai pencapaian KPI)</td><td align="right">${rp(r.tukin)}</td></tr>
   ${Number(r.tunj_status) > 0 ? `<tr><td>Tunjangan status kepegawaian (${esc(r.status_kepeg || 'Tetap')})</td><td align="right">${rp(r.tunj_status)}</td></tr>` : ''}
   ${r.profesi ? `<tr><td>Tunjangan profesi dokter (${esc(r.profesi)} step ${r.step_profesi}: ${r.basis_profesi === 'BULAN' ? rp(r.tarif_jam_profesi) + ' per bulan x faktor jam ' + Number(r.faktor_jam).toFixed(3) : rp(r.tarif_jam_profesi) + ' per jam x ' + Number(r.jam_profesi_bulan).toFixed(1) + ' jam'})</td><td align="right">${rp(tp)}</td></tr>` : ''}
+  ${Number(r.tunj_tim) > 0 ? `<tr><td>Fee tim${r.rincian_tim ? ' (' + esc(r.rincian_tim) + ')' : ''}</td><td align="right">${rp(r.tunj_tim)}</td></tr>` : ''}
   ${Number(r.tunj_beban) > 0 ? `<tr><td>Tunjangan beban kerja</td><td align="right">${rp(r.tunj_beban)}</td></tr>` : ''}
   ${ty > 0 ? `<tr><td>Tunjangan penyesuaian (masa transisi)</td><td align="right">${rp(ty)}</td></tr>` : ''}
   <tr><td><b>Total penghasilan</b></td><td align="right"><b>${rp(total)}</b></td></tr></table>
@@ -627,7 +672,7 @@ window.akGanti = () => run(async () => {
 const GROUPS = [
   ['Umum & jangkar skala', ['nama_rs', 'umk', 'mid_bawah', 'mid_atas', 'pembulatan']],
   ['Komponen upah', ['porsi_gapok']],
-  ['Tunjangan status kepegawaian', ['tunj_status_tetap', 'tunj_status_tidak_tetap', 'tunj_status_ikut_jam', 'status_dasar_upah', 'beban_dasar_upah']],
+  ['Tunjangan status kepegawaian', ['tunj_status_tetap', 'tunj_status_tidak_tetap', 'tunj_status_ikut_jam', 'status_dasar_upah', 'beban_dasar_upah', 'tim_dasar_upah']],
   ['Tukin (tunjangan kinerja)', ['tukin_max', 'kpi_mode', 'kpi_tangga', 'tukin_ikut_jam']],
   ['Jam kerja', ['jam_standar', 'jam_min', 'porsi_tunj_prop']],
   ['Penempatan step', ['poin_pend_d3', 'poin_pend_s1', 'poin_pend_s2', 'poin_pend_s3', 'thn_per_poin', 'max_poin_masa', 'max_poin_sertif', 'ambang_kpi']],
@@ -637,7 +682,7 @@ const GROUPS = [
 ];
 const SET_LABEL = {
   nama_rs: 'Nama RS (dokumen cetak)', umk: 'UMK Brebes 2026 (Rp/bulan)', mid_bawah: 'Midpoint golongan terendah (Rp)', mid_atas: 'Midpoint golongan tertinggi (Rp)', pembulatan: 'Pembulatan upah (Rp)',
-  porsi_gapok: 'Porsi minimum gaji pokok (pecahan, 0.75 = 75%)', tunj_status_tetap: 'Tunjangan status pegawai Tetap (Rp/bulan, jam penuh)', tunj_status_tidak_tetap: 'Tunjangan status pegawai Tidak tetap (Rp/bulan, jam penuh)', tunj_status_ikut_jam: 'Tunjangan status ikut dikurangi faktor jam kerja (1 = ya, 0 = dibayar penuh)', status_dasar_upah: 'Tunjangan status masuk dasar iuran BPJS dan THR (1 = ya, 0 = tidak)', beban_dasar_upah: 'Tunjangan beban kerja masuk dasar iuran BPJS dan THR (1 = ya, 0 = tidak)',
+  porsi_gapok: 'Porsi minimum gaji pokok (pecahan, 0.75 = 75%)', tunj_status_tetap: 'Tunjangan status pegawai Tetap (Rp/bulan, jam penuh)', tunj_status_tidak_tetap: 'Tunjangan status pegawai Tidak tetap (Rp/bulan, jam penuh)', tunj_status_ikut_jam: 'Tunjangan status ikut dikurangi faktor jam kerja (1 = ya, 0 = dibayar penuh)', status_dasar_upah: 'Tunjangan status masuk dasar iuran BPJS dan THR (1 = ya, 0 = tidak)', beban_dasar_upah: 'Tunjangan beban kerja masuk dasar iuran BPJS dan THR (1 = ya, 0 = tidak)', tim_dasar_upah: 'Fee tim masuk dasar iuran BPJS dan THR (1 = ya, 0 = tidak)',
   tukin_max: 'Tukin maksimum bawaan (pecahan dari upah manajerial jam penuh, 0.15 = 15%); bisa diganti per golongan di tabel Golongan jabatan', kpi_mode: 'Cara KPI menjadi tukin', kpi_tangga: 'Tangga KPI: ambang KPI (%) = persen tukin, pisah titik koma. Contoh 70=50;85=100 artinya KPI di bawah 70 = 0, 70-84 = 50%, 85 ke atas = 100%', tukin_ikut_jam: 'Tukin ikut dikurangi faktor jam kerja (1 = ya, 0 = dibayar penuh)', jam_standar: 'Jam kerja standar per minggu (jam penuh)', jam_min: 'Jam minimum per minggu untuk jabatan manajer',
   porsi_tunj_prop: 'Porsi tunjangan jabatan ikut proporsional jam (1 = ikut, 0 = penuh)', poin_pend_d3: 'Poin step: D3', poin_pend_s1: 'Poin step: S1/Profesi', poin_pend_s2: 'Poin step: S2/Spesialis', poin_pend_s3: 'Poin step: S3',
   thn_per_poin: 'Tahun masa kerja manajerial per 1 poin', max_poin_masa: 'Maksimum poin masa kerja', max_poin_sertif: 'Maksimum poin sertifikasi', ambang_kpi: 'Ambang KPI untuk +1 poin (pecahan)',
